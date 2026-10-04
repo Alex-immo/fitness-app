@@ -182,16 +182,47 @@ function advance(state: ProgressionState, { base, loadSteps, date }: SessionInpu
 }
 
 function regress(state: ProgressionState, { base, loadSteps, date }: SessionInput): SessionOutcome {
+  const baseRange = { currentRepMin: base.repMin, currentRepMax: base.repMax }
+  const stageBack = 'stage_decrease_after_missed_floor'
+  // From stage 3 on the step back undoes the latest stage instead of the load.
+  if (state.currentStage === 5) return change(state, { currentStage: 4, stage5Completed: false }, stageBack, date)
+  if (state.currentStage === 4) return change(state, { currentStage: 3, currentSets: base.sets }, stageBack, date)
+  if (state.currentStage === 3) return change(state, { currentStage: 2, ...baseRange }, stageBack, date)
+
   const unchanged: SessionOutcome = { state: { ...state, consecutiveFloorMisses: 0 }, event: null }
-  // The spec defines the step back as a lower load, so it only applies while
-  // load is the variable in play (stages 1 and 2).
-  if (!loadSteps || state.currentLoadKg === null || state.currentStage > 2) return unchanged
+  // Stages 1 and 2: one load step down. Nothing is left to take back at the
+  // bare bar or for exercises without a dumbbell.
+  if (!loadSteps || state.currentLoadKg === null) return unchanged
   const previous = previousLoadStep(loadSteps, state.currentLoadKg)
   if (!previous) return unchanged
   return change(
     state,
-    { currentStage: 1, currentLoadKg: previous.loadKg, currentRepMin: base.repMin, currentRepMax: base.repMax },
+    { currentStage: 1, currentLoadKg: previous.loadKg, ...baseRange },
     'load_decrease_after_missed_floor',
+    date,
+  )
+}
+
+/**
+ * The user picked a different load than the state holds (calibration in the
+ * first sessions). Only possible while load is the variable (stages 1 and 2):
+ * the state restarts at the chosen load with the template range.
+ */
+export function rebaseToLoad(input: {
+  state: ProgressionState
+  base: Dose
+  loadSteps: LoadStep[]
+  loadKg: number
+  date: IsoDate
+}): SessionOutcome {
+  const { state, base, loadSteps, loadKg, date } = input
+  if (!isSelectableLoad(loadSteps, loadKg)) throw new Error(`${loadKg} kg is not a selectable load`)
+  if (state.currentStage > 2 || state.currentLoadKg === loadKg) return { state, event: null }
+  const stage: Stage = loadKg < capLoadKg(loadSteps) ? 1 : 2
+  return change(
+    { ...state, updatedAt: date },
+    { currentStage: stage, currentLoadKg: loadKg, currentRepMin: base.repMin, currentRepMax: base.repMax },
+    'manual_load_change',
     date,
   )
 }

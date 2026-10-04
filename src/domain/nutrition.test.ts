@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { basalMetabolicRate, evaluateTrend, startTargets, weeklyMean } from './nutrition'
+import { basalMetabolicRate, evaluateTrend, proteinRangeG, startTargets, weeklyMean } from './nutrition'
 
 // All values are invented round numbers, not anyone's real data.
 
@@ -23,6 +23,13 @@ describe('start values', () => {
     const targets = startTargets({ weightKg: 60, heightCm: 160, birthYear: 2000, sex: 'female' }, 2030)
     // BMR 1289, maintenance 1933.5, plus 280 = 2213.5.
     expect(targets.kcalTarget).toBe(2200)
+  })
+})
+
+describe('protein range', () => {
+  it('follows the current body weight', () => {
+    expect(proteinRangeG(100)).toEqual({ minG: 160, maxG: 220 })
+    expect(proteinRangeG(105)).toEqual({ minG: 168, maxG: 231 })
   })
 })
 

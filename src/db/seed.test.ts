@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto'
+import Dexie from 'dexie'
 import { describe, expect, it } from 'vitest'
 import { FitnessDatabase } from './database'
 import { SEED_EQUIPMENT, SEED_EXERCISES, SEED_TEMPLATE_ITEMS, SEED_TEMPLATES } from './seed'
@@ -100,6 +101,24 @@ describe('database', () => {
     expect(await database.bodyWeightLogs.count()).toBe(0)
     expect(await database.templateItems.where('templateId').equals('B_lang').count()).toBe(9)
     database.close()
+  })
+
+  it('brings the catalogue of a version 1 database up to date and keeps user data', async () => {
+    const old = new Dexie('fitness-app-upgrade-test')
+    old.version(1).stores({ exercises: 'id', equipment: 'id', bodyWeightLogs: '++id, userId, date' })
+    await old.open()
+    await old.table('exercises').put({ id: 'glute_bridge_single_leg', dumbbellsUsed: 2 })
+    await old.table('equipment').put({ id: 'dumbbell', barWeightKg: 3 })
+    await old.table('bodyWeightLogs').add({ userId: 'test-user', date: '2030-01-07', weightKg: 100 })
+    old.close()
+
+    const database = new FitnessDatabase('fitness-app-upgrade-test')
+    await database.open()
+    expect((await database.exercises.get('glute_bridge_single_leg'))?.dumbbellsUsed).toBe(1)
+    expect(await database.exercises.count()).toBe(19)
+    expect((await database.equipment.get('dumbbell'))?.barWeightKg).toBe(3)
+    expect(await database.bodyWeightLogs.count()).toBe(1)
+    await database.delete()
   })
 
   it('does not seed again on reopening', async () => {

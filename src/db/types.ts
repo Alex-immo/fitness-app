@@ -98,6 +98,15 @@ export interface ScheduledSession {
   status: SessionStatus
 }
 
+/** Extension: in-progress state of a running workout, so it survives a reload. */
+export interface WorkoutDraft {
+  /** Load chosen per exercise in this session. */
+  loadByExercise: Record<string, number>
+  /** Epoch milliseconds at which the running rest ends; null without a running rest. */
+  restEndsAt: number | null
+  restSeconds: number
+}
+
 export interface SessionLog {
   id?: number
   scheduledSessionId: number
@@ -105,6 +114,8 @@ export interface SessionLog {
   startedAt: string
   finishedAt: string | null
   perceivedEffort: number | null
+  /** Extension: only present while the workout is running. */
+  draft?: WorkoutDraft
 }
 
 export interface SetLog {
@@ -123,6 +134,8 @@ export interface SetLog {
 export interface ProgressionStateRecord extends ProgressionState {
   /** Extension: only set for the pull-up, which follows its own scheme. */
   pullupLevel?: PullupLevel
+  /** Extension: the next B session starts with a new placement test. */
+  pullupRetestDue?: boolean
 }
 
 export interface ProgressionEventRecord extends ProgressionEvent {

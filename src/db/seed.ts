@@ -176,8 +176,7 @@ export const SEED_EXERCISES: Exercise[] = [
     equipmentIds: ['dumbbell'],
     isUnilateral: true,
     loadType: 'hantel',
-    // The spec says "1–2 KH"; two is an assumption (see open questions).
-    dumbbellsUsed: 2,
+    dumbbellsUsed: 1,
     startLoadHint: 'cap',
     nextVariantText: 'einbeiniger Hip Thrust, Schultern auf dem Sofa',
   }),
@@ -281,7 +280,7 @@ export const SEED_TEMPLATE_ITEMS: TemplateItem[] = [
   ...items('B_lang', [
     ['rdl_single_leg', 4, 10, 12, 75, '3 s ablassen'],
     ['pullup', 4, null, null, 90, 'nach Einstufung'],
-    ['glute_bridge_single_leg', 3, 12, 15, 60, 'Hanteln auf der Hüfte'],
+    ['glute_bridge_single_leg', 3, 12, 15, 60, 'Hantel auf der Hüfte'],
     ['row_one_arm', 3, 12, 15, 60],
     ['reverse_fly', 2, 12, 15, 45],
     ['shoulder_press_kneeling', 3, 10, 15, 60, 'kniend verhindert das Ausweichen ins Hohlkreuz'],

@@ -109,7 +109,7 @@ Die Spalte Last zeigt, wo die Übung beim Start steht: am Deckel, unter dem Deck
 | `plank` | Plank | Rumpf Anti-Extension | Matte | nein | Zeit |
 | `side_plank` | Side Plank | Rumpf Anti-Lateralflexion | Matte | ja | Zeit |
 | `rdl_single_leg` | Einbeiniges Rumänisches Kreuzheben | Hüfte (Hinge) | 2 KH | ja | kalibrieren |
-| `glute_bridge_single_leg` | Einbeinige Glute Bridge | Hüfte (Extension) | 1–2 KH | ja | am Deckel |
+| `glute_bridge_single_leg` | Einbeinige Glute Bridge | Hüfte (Extension) | 1 KH | ja | am Deckel |
 | `reverse_fly` | Reverse Fly vorgebeugt | Zug horizontal (hintere Schulter) | 2 KH | nein | kalibrieren |
 | `shoulder_press_kneeling` | Schulterdrücken kniend | Druck vertikal | 2 KH | nein | kalibrieren |
 | `biceps_curl` | Bizeps Curls | Ellbogen Flexion | 2 KH | nein | kalibrieren |
@@ -146,7 +146,7 @@ RIR = Wiederholungen, die im Satz bis zum Muskelversagen noch möglich gewesen w
 | --- | --- | --- | --- | --- | --- |
 | 1 | `rdl_single_leg` | 4 | 10–12 je Bein | 75 s | 3 s ablassen |
 | 2 | `pullup` | 4 | nach Einstufung | 90 s | siehe Abschnitt 6 |
-| 3 | `glute_bridge_single_leg` | 3 | 12–15 je Bein | 60 s | Hanteln auf der Hüfte |
+| 3 | `glute_bridge_single_leg` | 3 | 12–15 je Bein | 60 s | Hantel auf der Hüfte |
 | 4 | `row_one_arm` | 3 | 12–15 je Seite | 60 s | |
 | 5 | `reverse_fly` | 2 | 12–15 | 45 s | |
 | 6 | `shoulder_press_kneeling` | 3 | 10–15 | 60 s | kniend verhindert das Ausweichen ins Hohlkreuz |
@@ -198,7 +198,7 @@ Große Lastsprünge: Ist der Sprung zur nächsten Laststufe größer als 15 % de
 
 - Aufstieg: In zwei aufeinanderfolgenden Einheiten mit dieser Übung erreichen alle Sätze die obere Wiederholungsgrenze.
 - Schnellaufstieg: Obergrenze in allen Sätzen und RIR 4 oder mehr im letzten Satz. Dann reicht eine Einheit.
-- Rückschritt: Die Untergrenze wird im ersten Satz zweimal in Folge verfehlt. Dann geht die Last eine Stufe zurück.
+- Rückschritt: Die Untergrenze wird im ersten Satz zweimal in Folge verfehlt. In Stufe 1 und 2 geht die Last eine Stufe zurück. Ab Stufe 3 geht die Übung eine Stufe zurück (Variante, Zusatzsatz oder Tempo entfällt); das gilt auch für Übungen ohne Hantel.
 - Gewertet werden nur A lang und B lang. Kurz- und Reisezirkel werden protokolliert, lösen aber keinen Stufenwechsel aus.
 - RIR ist im letzten Satz jeder Übung ein Pflichtfeld.
 - Bei einseitigen Übungen zählt die schwächere Seite.
@@ -245,7 +245,7 @@ Startwerte, berechnet aus dem Profil (Gewicht, Größe, Geburtsjahr, Geschlecht)
 | Grundumsatz | Mifflin-St-Jeor: 10 × kg + 6,25 × cm − 5 × Alter + 5 (Männer) bzw. − 161 (Frauen) |
 | Erhaltungsbedarf | Grundumsatz × 1,5 |
 | Kalorienziel | Erhaltung + 280 kcal, gerundet auf 50 |
-| Protein-Minimum | 1,6 g je kg Körpergewicht (Zielbereich bis 2,2 g je kg) |
+| Protein-Minimum | 1,6 g je kg aktuelles Körpergewicht (Zielbereich bis 2,2 g je kg); wächst mit dem Gewicht mit |
 | Zielrate | 0,25–0,5 % des Körpergewichts pro Woche |
 
 ### Regelkreis

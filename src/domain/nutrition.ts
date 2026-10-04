@@ -36,6 +36,14 @@ export function basalMetabolicRate(input: { weightKg: number; heightCm: number; 
   return input.sex === 'male' ? base + 5 : base - 161
 }
 
+/** Protein range for the current body weight; it follows the weight as it changes. */
+export function proteinRangeG(weightKg: number): { minG: number; maxG: number } {
+  return {
+    minG: Math.round(weightKg * PROTEIN_MIN_G_PER_KG),
+    maxG: Math.round(weightKg * PROTEIN_MAX_G_PER_KG),
+  }
+}
+
 export function startTargets(profile: Profile, currentYear: number): StartTargets {
   const bmrKcal = basalMetabolicRate({ ...profile, ageYears: currentYear - profile.birthYear })
   const maintenanceKcal = bmrKcal * ACTIVITY_FACTOR
@@ -43,8 +51,8 @@ export function startTargets(profile: Profile, currentYear: number): StartTarget
     bmrKcal,
     maintenanceKcal,
     kcalTarget: Math.round((maintenanceKcal + SURPLUS_KCAL) / KCAL_ROUNDING) * KCAL_ROUNDING,
-    proteinMinG: Math.round(profile.weightKg * PROTEIN_MIN_G_PER_KG),
-    proteinMaxG: Math.round(profile.weightKg * PROTEIN_MAX_G_PER_KG),
+    proteinMinG: proteinRangeG(profile.weightKg).minG,
+    proteinMaxG: proteinRangeG(profile.weightKg).maxG,
   }
 }
 

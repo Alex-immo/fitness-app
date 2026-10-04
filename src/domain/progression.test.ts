@@ -4,6 +4,7 @@ import {
   equipmentLimitReached,
   evaluateSession,
   initialProgressionState,
+  rebaseToLoad,
   tempoApplies,
   type LoggedSet,
   type SessionOutcome,
@@ -242,6 +243,64 @@ describe('step back', () => {
       loadSteps: null,
     })
     expect(bodyweight.event).toBeNull()
+  })
+})
+
+describe('step back from stage 3 on and without a dumbbell', () => {
+  const missTwice = (state: ProgressionState, reps: number[], options: Parameters<typeof run>[2] = {}) =>
+    run(run(state, reps, options).state, reps, options)
+  const stage3 = () => runUntilEvent(start(12.8), [15, 15, 15]).state
+  const stage4 = () => runUntilEvent(stage3(), [15, 15, 15]).state
+  const stage5 = () => runUntilEvent(stage4(), [15, 15, 15, 15]).state
+
+  it('drops the tempo: stage 3 back to stage 2 at the same load', () => {
+    const { state, event } = missTwice(stage3(), [11, 11, 11])
+    expect(state).toMatchObject({ currentStage: 2, currentLoadKg: 12.8, currentRepMin: 12, currentRepMax: 15 })
+    expect(event).toMatchObject({ fromStage: 3, toStage: 2, reason: 'stage_decrease_after_missed_floor' })
+  })
+
+  it('removes the extra set: stage 4 back to stage 3', () => {
+    const { state } = missTwice(stage4(), [11, 11, 11, 11])
+    expect(state).toMatchObject({ currentStage: 3, currentSets: 3 })
+  })
+
+  it('drops the variant: stage 5 back to stage 4, keeping the extra set', () => {
+    const done = runUntilEvent(stage5(), [15, 15, 15, 15]).state
+    const { state } = missTwice(done, [11, 11, 11, 11])
+    expect(state).toMatchObject({ currentStage: 4, currentSets: 4, stage5Completed: false })
+  })
+
+  it('also goes one stage back for exercises without a dumbbell', () => {
+    const bodyweightStage3 = runUntilEvent(start(null, null), [15, 15, 15], { loadSteps: null }).state
+    const { state, event } = missTwice(bodyweightStage3, [11, 11, 11], { loadSteps: null })
+    expect(state.currentStage).toBe(2)
+    expect(event?.reason).toBe('stage_decrease_after_missed_floor')
+  })
+})
+
+describe('manual load change', () => {
+  const rebase = (state: ProgressionState, loadKg: number) =>
+    rebaseToLoad({ state, base: BASE, loadSteps: STEPS, loadKg, date: '2030-01-09' })
+
+  it('restarts the state at the chosen load and writes an event', () => {
+    const extended = runUntilEvent(start(4.8), [15, 15, 15]).state
+    const { state, event } = rebase(extended, 8.3)
+    expect(state).toMatchObject({ currentLoadKg: 8.3, currentStage: 1, currentRepMax: 15, consecutiveTargetHits: 0 })
+    expect(event).toMatchObject({ reason: 'manual_load_change', fromLoadKg: 4.8, toLoadKg: 8.3 })
+  })
+
+  it('sets stage 2 when the chosen load is the cap', () => {
+    expect(rebase(start(6.3), 12.8).state.currentStage).toBe(2)
+  })
+
+  it('does nothing for the same load or from stage 3 on', () => {
+    expect(rebase(start(6.3), 6.3).event).toBeNull()
+    const stage3 = runUntilEvent(start(12.8), [15, 15, 15]).state
+    expect(rebase(stage3, 10.8)).toEqual({ state: stage3, event: null })
+  })
+
+  it('rejects a load that cannot be set', () => {
+    expect(() => rebase(start(6.3), 7)).toThrow()
   })
 })
 

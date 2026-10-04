@@ -52,6 +52,9 @@ export type ProgressionReason =
   | 'variant_introduced'
   | 'equipment_limit_reached'
   | 'load_decrease_after_missed_floor'
+  | 'stage_decrease_after_missed_floor'
+  | 'manual_load_change'
+  | 'pullup_level_changed'
 
 export interface ProgressionEvent {
   userId: string

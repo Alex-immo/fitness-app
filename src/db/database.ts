@@ -61,6 +61,15 @@ export class FitnessDatabase extends Dexie {
       kcalAdjustments: '++id, userId, date',
       cardioLogs: '++id, userId, date',
     })
+    // Version 2: catalogue changed (glute bridge uses one dumbbell). Existing
+    // databases get the current catalogue; equipment stays as the user set it.
+    this.version(2)
+      .stores({})
+      .upgrade(async (transaction) => {
+        await transaction.table('exercises').bulkPut(SEED_EXERCISES)
+        await transaction.table('workoutTemplates').bulkPut(SEED_TEMPLATES)
+        await transaction.table('templateItems').bulkPut(SEED_TEMPLATE_ITEMS)
+      })
     // Runs once, when the database is first created.
     this.on('populate', (transaction) => {
       void transaction.table('equipment').bulkAdd(SEED_EQUIPMENT)
