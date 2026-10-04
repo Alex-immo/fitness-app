@@ -56,3 +56,12 @@ describe('pull-up advance', () => {
     expect(evaluatePullupSession('rep_range', [10, 10, 10]).level).toBe('rep_range')
   })
 })
+
+describe('pull-ups in the entry phase', () => {
+  it('advances when all three sets of the entry template reach the target', () => {
+    expect(evaluatePullupSession('max_reps', [5, 5, 5], 3).level).toBe('rep_range')
+    expect(evaluatePullupSession('rep_range', [10, 10, 10], 3).level).toBe('weighted')
+    expect(evaluatePullupSession('negatives', [5, 5, 5], 3).retestDue).toBe(true)
+    expect(evaluatePullupSession('max_reps', [5, 5], 3).level).toBe('max_reps')
+  })
+})

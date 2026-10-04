@@ -43,10 +43,18 @@ export interface PullupOutcome {
   retestDue: boolean
 }
 
-/** Evaluates one B session. `repsPerSet` are the repetitions of each set in order. */
-export function evaluatePullupSession(level: PullupLevel, repsPerSet: number[]): PullupOutcome {
+/**
+ * Evaluates one B session. `repsPerSet` are the repetitions of each set in
+ * order; `requiredSets` is the set count of the session's template (4 in the
+ * full plan, 3 in the entry phase).
+ */
+export function evaluatePullupSession(
+  level: PullupLevel,
+  repsPerSet: number[],
+  requiredSets: number = PULLUP_SETS,
+): PullupOutcome {
   const allSetsReach = (target: number) =>
-    repsPerSet.length >= PULLUP_SETS && repsPerSet.every((reps) => reps >= target)
+    repsPerSet.length >= requiredSets && repsPerSet.every((reps) => reps >= target)
 
   switch (level) {
     case 'negatives':

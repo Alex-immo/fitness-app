@@ -1,9 +1,10 @@
 import type { FitnessDatabase } from '../../db/database'
 import { LOCAL_USER_ID } from '../../db/localUser'
 import type { ScheduledSession, WeekPlan } from '../../db/types'
-import { weekdayIndex } from '../../domain/dates'
-import { assignRotation, planWeek } from '../../domain/schedule'
-import type { DayType, IsoDate } from '../../domain/types'
+import { addDays, minutesBetween, weekdayIndex } from '../../domain/dates'
+import { shouldSuggestFullPlan, SUGGESTION_SNOOZE_DAYS, type CompletedSession } from '../../domain/phase'
+import { assignRotation, planPhaseOf, planWeek } from '../../domain/schedule'
+import type { DayType, IsoDate, PlanPhase } from '../../domain/types'
 
 // Database operations of the week planning.
 
@@ -38,15 +39,23 @@ export async function suggestedDayTypes(db: FitnessDatabase, weekStart: IsoDate)
   return planned.at(-1)?.dayTypes ?? DEFAULT_DAY_TYPES
 }
 
+/** Plan variant in force; the entry phase until the user switches. */
+export const DEFAULT_PLAN_PHASE: PlanPhase = 'einstieg'
+
+export async function getPlanPhase(db: FitnessDatabase): Promise<PlanPhase> {
+  return (await db.users.get(LOCAL_USER_ID))?.planPhase ?? DEFAULT_PLAN_PHASE
+}
+
 /**
- * Re-assigns A and B to all planned long sessions so the rotation follows the
- * long versions actually completed. Called whenever a session is planned,
- * completed, dropped or brought back.
+ * Re-assigns the templates of all planned A/B sessions so the rotation follows
+ * the sessions actually completed and open ones use the current plan variant.
+ * Called whenever a session is planned, completed, dropped or brought back,
+ * and when the plan variant changes.
  */
 export async function rotateOpenSessions(db: FitnessDatabase): Promise<void> {
-  await db.transaction('rw', db.scheduledSessions, async () => {
+  await db.transaction('rw', db.users, db.scheduledSessions, async () => {
     const sessions = await db.scheduledSessions.orderBy('date').toArray()
-    const rotated = assignRotation(sessions)
+    const rotated = assignRotation(sessions, await getPlanPhase(db))
     for (const [index, session] of sessions.entries()) {
       const templateId = rotated[index]!
       if (templateId !== session.templateId) await db.scheduledSessions.update(session.id!, { templateId })
@@ -60,7 +69,7 @@ export async function rotateOpenSessions(db: FitnessDatabase): Promise<void> {
  */
 export async function saveWeekPlan(db: FitnessDatabase, weekStart: IsoDate, dayTypes: DayType[]): Promise<void> {
   if (weekdayIndex(weekStart) !== 0) throw new Error('weekStart must be a Monday')
-  await db.transaction('rw', db.weekPlans, db.scheduledSessions, db.sessionLogs, async () => {
+  await db.transaction('rw', db.users, db.weekPlans, db.scheduledSessions, db.sessionLogs, async () => {
     const existing = await db.weekPlans.where('weekStart').equals(weekStart).first()
     const weekPlanId =
       existing?.id ?? (await db.weekPlans.add({ userId: LOCAL_USER_ID, weekStart, weekType: 'normal', dayTypes }))
@@ -79,7 +88,8 @@ export async function saveWeekPlan(db: FitnessDatabase, weekStart: IsoDate, dayT
     await db.scheduledSessions.bulkDelete(open.map((session) => session.id!))
 
     const takenDates = new Set(sessions.filter((session) => !open.includes(session)).map((session) => session.date))
-    const planned = planWeek({ weekStart, dayTypes, lastLong: null }).sessions
+    // The rotation is assigned right below, over all sessions.
+    const planned = planWeek({ weekStart, dayTypes, lastLong: null, phase: await getPlanPhase(db) }).sessions
     await db.scheduledSessions.bulkAdd(
       planned
         .filter((session) => !takenDates.has(session.date))
@@ -91,7 +101,7 @@ export async function saveWeekPlan(db: FitnessDatabase, weekStart: IsoDate, dayT
 
 /** Drops a planned session (it is not made up) or brings a dropped one back. */
 export async function setSessionDropped(db: FitnessDatabase, sessionId: number, dropped: boolean): Promise<void> {
-  await db.transaction('rw', db.scheduledSessions, async () => {
+  await db.transaction('rw', db.users, db.scheduledSessions, async () => {
     const session = await db.scheduledSessions.get(sessionId)
     if (!session || session.status === 'erledigt') return
     await db.scheduledSessions.update(sessionId, { status: dropped ? 'ausgefallen' : 'geplant' })
@@ -101,13 +111,12 @@ export async function setSessionDropped(db: FitnessDatabase, sessionId: number, 
 
 /** Planned sessions of past weeks that were never started count as dropped. */
 export async function closePastWeeks(db: FitnessDatabase, currentWeekStart: IsoDate): Promise<void> {
-  await db.transaction('rw', db.scheduledSessions, db.sessionLogs, async () => {
+  await db.transaction('rw', db.users, db.scheduledSessions, db.sessionLogs, async () => {
     const stale = await db.scheduledSessions
       .where('date')
       .below(currentWeekStart)
       .filter((session) => session.status === 'geplant')
       .toArray()
-    if (stale.length === 0) return
     const logged = new Set(
       (
         await db.sessionLogs
@@ -137,5 +146,53 @@ export async function logBikeSession(
       avgPowerW: input.avgPowerW,
     })
     await db.scheduledSessions.update(input.sessionId, { status: 'erledigt', date: input.date })
+  })
+}
+
+/**
+ * Switches the plan variant by hand, in either direction. Open home-office
+ * sessions move to the new variant; completed ones stay as they were.
+ */
+export async function setPlanPhase(db: FitnessDatabase, phase: PlanPhase, today: IsoDate): Promise<void> {
+  await db.transaction('rw', db.users, db.scheduledSessions, async () => {
+    const user = await db.users.get(LOCAL_USER_ID)
+    if (!user) throw new Error('No profile yet')
+    if ((user.planPhase ?? DEFAULT_PLAN_PHASE) === phase) return
+    await db.users.put({ ...user, planPhase: phase, planPhaseSince: today, phaseSuggestionSnoozedUntil: undefined })
+    await rotateOpenSessions(db)
+  })
+}
+
+/** "Ask again in two weeks" on the suggestion to switch to the full plan. */
+export async function snoozePhaseSuggestion(db: FitnessDatabase, today: IsoDate): Promise<void> {
+  await db.users.update(LOCAL_USER_ID, { phaseSuggestionSnoozedUntil: addDays(today, SUGGESTION_SNOOZE_DAYS) })
+}
+
+/** Whether to suggest the switch from the entry phase to the full plan today. */
+export async function fullPlanSuggested(db: FitnessDatabase, today: IsoDate): Promise<boolean> {
+  return db.transaction('r', db.users, db.scheduledSessions, db.sessionLogs, async () => {
+    const user = await db.users.get(LOCAL_USER_ID)
+    const phase = user?.planPhase ?? DEFAULT_PLAN_PHASE
+    if (phase !== 'einstieg') return false
+
+    const done = await db.scheduledSessions
+      .filter(
+        (session) =>
+          session.status === 'erledigt' &&
+          planPhaseOf(session.templateId) === 'einstieg' &&
+          (user?.planPhaseSince === undefined || session.date >= user.planPhaseSince),
+      )
+      .toArray()
+    const entrySessions: CompletedSession[] = []
+    for (const session of done) {
+      const log = await db.sessionLogs.where('scheduledSessionId').equals(session.id!).first()
+      if (log?.finishedAt) entrySessions.push({ date: session.date, durationMin: minutesBetween(log.startedAt, log.finishedAt) })
+    }
+    return shouldSuggestFullPlan({
+      phase,
+      entrySessions,
+      today,
+      snoozedUntil: user?.phaseSuggestionSnoozedUntil ?? null,
+    })
   })
 }

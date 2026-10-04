@@ -520,3 +520,28 @@ select:disabled {
 .weeks th:first-child {
   text-align: left;
 }
+
+/* Settings and suggestions */
+
+.card-highlight {
+  border: 1px solid var(--accent);
+}
+
+.phase-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.phase-option span {
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+
+.tab {
+  font-size: 0.92rem;
+  padding: 0 4px;
+}

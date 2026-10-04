@@ -1,6 +1,6 @@
 import type { Equipment, Exercise, ProgressionStateRecord, SetLog, TemplateItem, WorkoutTemplate } from '../../db/types'
 import { capLoadKg, computeLoadSteps, isSelectableLoad, type DumbbellSetup, type LoadStep } from '../../domain/loads'
-import { tempoApplies } from '../../domain/progression'
+import { setsFor, tempoApplies } from '../../domain/progression'
 import { pullupLevelFromTest, pullupScheme, type PullupLevel } from '../../domain/pullup'
 
 // Turns a template plus the current progression states into what the workout
@@ -119,7 +119,7 @@ export function buildWorkoutPlan(input: PlanInput): WorkoutPlan {
     const target: ExerciseTarget = {
       item,
       exercise,
-      sets: progressed?.currentSets ?? item.sets,
+      sets: setsFor(progressed, item.sets),
       repMin: progressed?.currentRepMin ?? item.repMin,
       repMax: progressed?.currentRepMax ?? item.repMax,
       unit: exercise.loadType === 'zeit' ? 'seconds' : 'reps',
@@ -144,7 +144,7 @@ export function buildWorkoutPlan(input: PlanInput): WorkoutPlan {
       const scheme = level ? pullupScheme(level) : null
       target.needsPullupTest = storedLevel === null
       target.pullupLevel = level
-      target.sets = scheme?.sets ?? item.sets
+      target.sets = item.sets
       // "As many clean reps as possible": 5 per set is the goal that moves on.
       target.repMin = scheme ? (scheme.repMin ?? 1) : null
       target.repMax = scheme ? (scheme.repMax ?? 5) : null

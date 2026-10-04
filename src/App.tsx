@@ -5,15 +5,17 @@ import { BodyView } from './features/body/BodyView'
 import { getUser } from './features/body/bodyStore'
 import { Onboarding } from './features/body/Onboarding'
 import { PlanView } from './features/plan/PlanView'
+import { SettingsView } from './features/settings/SettingsView'
 import { eventText } from './features/workout/texts'
 import { WorkoutView } from './features/workout/WorkoutView'
 import { getActiveSessionLog } from './features/workout/workoutStore'
 import { useLiveQuery } from './shared/useLiveQuery'
 
-type Tab = 'plan' | 'body'
+type Tab = 'plan' | 'body' | 'settings'
 const TABS: { id: Tab; label: string }[] = [
   { id: 'plan', label: 'Plan' },
   { id: 'body', label: 'Körper' },
+  { id: 'settings', label: 'Einstellungen' },
 ]
 
 export function App() {
@@ -31,7 +33,9 @@ export function App() {
 
   return (
     <>
-      {tab === 'plan' ? <PlanView /> : <BodyView />}
+      {tab === 'plan' && <PlanView />}
+      {tab === 'body' && <BodyView />}
+      {tab === 'settings' && <SettingsView />}
       <nav className="tabbar" aria-label="Bereiche">
         {TABS.map(({ id, label }) => (
           <button

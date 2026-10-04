@@ -36,3 +36,8 @@ export function toIsoDate(date: Date): IsoDate {
 export function toLocalTimestamp(date: Date): string {
   return `${toIsoDate(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
+
+/** Minutes between two local timestamps as written by toLocalTimestamp. */
+export function minutesBetween(start: string, end: string): number {
+  return (new Date(end).getTime() - new Date(start).getTime()) / 60_000
+}

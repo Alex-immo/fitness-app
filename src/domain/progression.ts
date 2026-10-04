@@ -71,7 +71,6 @@ export function initialProgressionState(input: {
     exerciseId: input.exerciseId,
     currentStage: stage,
     currentLoadKg: load,
-    currentSets: input.base.sets,
     currentRepMin: input.base.repMin,
     currentRepMax: input.base.repMax,
     consecutiveTargetHits: 0,
@@ -108,7 +107,7 @@ export function evaluateSession(input: SessionInput): SessionOutcome {
   const last = sets[sets.length - 1]
   if (!first || !last) return { state, event: null }
 
-  const hitAll = sets.length >= state.currentSets && sets.every((set) => set.reps >= state.currentRepMax)
+  const hitAll = sets.length >= setsFor(state, input.base.sets) && sets.every((set) => set.reps >= state.currentRepMax)
   const missedFloor = first.reps < state.currentRepMin
   const hits = hitAll ? state.consecutiveTargetHits + 1 : 0
   const misses = missedFloor ? state.consecutiveFloorMisses + 1 : 0
@@ -170,7 +169,7 @@ function advance(state: ProgressionState, { base, loadSteps, date }: SessionInpu
   }
 
   if (state.currentStage === 3) {
-    return change(state, { currentStage: 4, currentSets: state.currentSets + 1 }, 'extra_set_added', date)
+    return change(state, { currentStage: 4 }, 'extra_set_added', date)
   }
   if (state.currentStage === 4) {
     return change(state, { currentStage: 5, ...baseRange }, 'variant_introduced', date)
@@ -186,7 +185,7 @@ function regress(state: ProgressionState, { base, loadSteps, date }: SessionInpu
   const stageBack = 'stage_decrease_after_missed_floor'
   // From stage 3 on the step back undoes the latest stage instead of the load.
   if (state.currentStage === 5) return change(state, { currentStage: 4, stage5Completed: false }, stageBack, date)
-  if (state.currentStage === 4) return change(state, { currentStage: 3, currentSets: base.sets }, stageBack, date)
+  if (state.currentStage === 4) return change(state, { currentStage: 3 }, stageBack, date)
   if (state.currentStage === 3) return change(state, { currentStage: 2, ...baseRange }, stageBack, date)
 
   const unchanged: SessionOutcome = { state: { ...state, consecutiveFloorMisses: 0 }, event: null }
@@ -225,6 +224,15 @@ export function rebaseToLoad(input: {
     'manual_load_change',
     date,
   )
+}
+
+/**
+ * Sets to do in a session: the template's count, plus the one extra set from
+ * stage 4 on. The state stores no set count, so the same state works with
+ * templates that dose the exercise differently.
+ */
+export function setsFor(state: Pick<ProgressionState, 'currentStage'> | undefined, templateSets: number): number {
+  return templateSets + (state && state.currentStage >= 4 ? 1 : 0)
 }
 
 /** Slow tempo (4 s down, 1 s pause in the stretch) applies from stage 3 on. */

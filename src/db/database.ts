@@ -1,4 +1,4 @@
-import Dexie, { type Table } from 'dexie'
+import Dexie, { type Table, type Transaction } from 'dexie'
 import { SEED_EQUIPMENT, SEED_EXERCISES, SEED_TEMPLATE_ITEMS, SEED_TEMPLATES } from './seed'
 import type {
   BodyMeasureLog,
@@ -20,6 +20,13 @@ import type {
 } from './types'
 
 export const DB_NAME = 'fitness-app'
+
+/** Brings exercises, templates and template items up to the current catalogue. */
+async function refreshCatalogue(transaction: Transaction): Promise<void> {
+  await transaction.table('exercises').bulkPut(SEED_EXERCISES)
+  await transaction.table('workoutTemplates').bulkPut(SEED_TEMPLATES)
+  await transaction.table('templateItems').bulkPut(SEED_TEMPLATE_ITEMS)
+}
 
 // Schema changes only through a new version() block with an upgrade step,
 // never by deleting the database.
@@ -63,12 +70,26 @@ export class FitnessDatabase extends Dexie {
     })
     // Version 2: catalogue changed (glute bridge uses one dumbbell). Existing
     // databases get the current catalogue; equipment stays as the user set it.
-    this.version(2)
+    this.version(2).stores({}).upgrade(refreshCatalogue)
+    // Version 3: entry-phase templates and the plan variant. The set count
+    // leaves the progression state (it now follows from template and stage);
+    // existing profiles start in the entry phase. No user data is removed.
+    this.version(3)
       .stores({})
       .upgrade(async (transaction) => {
-        await transaction.table('exercises').bulkPut(SEED_EXERCISES)
-        await transaction.table('workoutTemplates').bulkPut(SEED_TEMPLATES)
-        await transaction.table('templateItems').bulkPut(SEED_TEMPLATE_ITEMS)
+        await refreshCatalogue(transaction)
+        await transaction
+          .table('progressionStates')
+          .toCollection()
+          .modify((state: Record<string, unknown>) => {
+            delete state.currentSets
+          })
+        await transaction
+          .table('users')
+          .toCollection()
+          .modify((user: User) => {
+            user.planPhase ??= 'einstieg'
+          })
       })
     // Runs once, when the database is first created.
     this.on('populate', (transaction) => {

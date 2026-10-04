@@ -3,13 +3,19 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FitnessDatabase } from '../../db/database'
 import type { DayType } from '../../domain/types'
 import { finishWorkout, getActiveSessionLog, startScheduledSession } from '../workout/workoutStore'
+import { LOCAL_USER_ID } from '../../db/localUser'
+import { addDays } from '../../domain/dates'
 import {
   closePastWeeks,
   DEFAULT_DAY_TYPES,
   getWeek,
   logBikeSession,
+  fullPlanSuggested,
+  getPlanPhase,
   saveWeekPlan,
+  setPlanPhase,
   setSessionDropped,
+  snoozePhaseSuggestion,
   suggestedDayTypes,
 } from './planStore'
 
@@ -18,12 +24,25 @@ const WEEK_2 = '2030-01-14'
 const MONDAY_MORNING = new Date(2030, 0, 7, 6, 30)
 const TWO_HOME_OFFICE: DayType[] = ['homeoffice', 'buero', 'homeoffice', 'buero', 'buero', 'wochenende', 'wochenende']
 
+// Invented profile values.
+const TEST_USER = {
+  id: LOCAL_USER_ID,
+  heightCm: 200,
+  birthYear: 1980,
+  sex: 'male' as const,
+  goal: 'muskelaufbau',
+  kcalTarget: 3000,
+  proteinTargetG: 160,
+  gainTargetPctPerWeek: 0.375,
+}
+
 let db: FitnessDatabase
 let counter = 0
 
 beforeEach(async () => {
   db = new FitnessDatabase(`plan-test-${counter++}`)
   await db.open()
+  await db.users.put({ ...TEST_USER, planPhase: 'voll' })
 })
 afterEach(async () => {
   await db.delete()
@@ -163,5 +182,107 @@ describe('planned sessions', () => {
     await logBikeSession(db, { sessionId: bike.id!, date: '2030-01-12', durationMin: 45, avgPowerW: null })
     expect(await db.cardioLogs.toArray()).toMatchObject([{ durationMin: 45, zone: 2, avgPowerW: null }])
     expect((await db.scheduledSessions.get(bike.id!))?.status).toBe('erledigt')
+  })
+})
+
+describe('plan variant', () => {
+  const useEntryPhase = () => db.users.put({ ...TEST_USER, planPhase: 'einstieg' })
+
+  it('defaults to the entry phase, also for profiles from before the setting existed', async () => {
+    await db.users.put(TEST_USER)
+    expect(await getPlanPhase(db)).toBe('einstieg')
+    await saveWeekPlan(db, WEEK_1, DEFAULT_DAY_TYPES)
+    expect(await templates(WEEK_1)).toEqual([
+      '07:A_einstieg:geplant',
+      '09:B_einstieg:geplant',
+      '11:A_einstieg:geplant',
+      '12:bike_z2:geplant',
+    ])
+  })
+
+  it('leaves circuits and bike as they are in the entry phase', async () => {
+    await useEntryPhase()
+    await saveWeekPlan(db, WEEK_1, ['buero', 'reise', 'reise', 'reise', 'homeoffice', 'wochenende', 'wochenende'])
+    expect(await templates(WEEK_1)).toEqual([
+      '07:kurzzirkel:geplant',
+      '09:reisezirkel:geplant',
+      '11:A_einstieg:geplant',
+      '12:bike_z2:geplant',
+    ])
+  })
+
+  it('continues the rotation across a switch and moves only open sessions', async () => {
+    await useEntryPhase()
+    await saveWeekPlan(db, WEEK_1, DEFAULT_DAY_TYPES)
+    await saveWeekPlan(db, WEEK_2, DEFAULT_DAY_TYPES)
+    const monday = (await getWeek(db, WEEK_1))!.sessions[0]!
+    await complete(monday.id!, MONDAY_MORNING)
+
+    await setPlanPhase(db, 'voll', '2030-01-08')
+    expect((await templates(WEEK_1)).slice(0, 3)).toEqual(['07:A_einstieg:erledigt', '09:B_lang:geplant', '11:A_lang:geplant'])
+    expect((await templates(WEEK_2))[0]).toBe('14:B_lang:geplant')
+    expect(await db.users.get(LOCAL_USER_ID)).toMatchObject({ planPhase: 'voll', planPhaseSince: '2030-01-08' })
+
+    await setPlanPhase(db, 'einstieg', '2030-01-08')
+    expect((await templates(WEEK_1)).slice(0, 3)).toEqual([
+      '07:A_einstieg:erledigt',
+      '09:B_einstieg:geplant',
+      '11:A_einstieg:geplant',
+    ])
+  })
+})
+
+describe('suggestion to switch to the full plan', () => {
+  /** Completes one entry session per week on consecutive Mondays with the given durations. */
+  const trainWeeks = async (durationsMin: number[]) => {
+    for (const [index, durationMin] of durationsMin.entries()) {
+      const weekStart = addDays(WEEK_1, index * 7)
+      await saveWeekPlan(db, weekStart, ['homeoffice', 'buero', 'buero', 'buero', 'buero', 'wochenende', 'wochenende'])
+      const session = (await getWeek(db, weekStart))!.sessions[0]!
+      const startedAt = new Date(2030, 0, 7 + index * 7, 6, 0)
+      const logId = await startScheduledSession(db, session.id!, startedAt)
+      await finishWorkout(db, logId, null, new Date(startedAt.getTime() + durationMin * 60_000))
+    }
+  }
+  const TODAY = '2030-02-01'
+
+  beforeEach(async () => {
+    await db.users.put({ ...TEST_USER, planPhase: 'einstieg' })
+  })
+
+  it('is made after four training weeks with the last two sessions under 45 minutes', async () => {
+    await trainWeeks([50, 48, 44, 41])
+    expect(await fullPlanSuggested(db, TODAY)).toBe(true)
+  })
+
+  it('is not made when one of the last two sessions took 45 minutes or more', async () => {
+    await trainWeeks([40, 40, 46, 41])
+    expect(await fullPlanSuggested(db, TODAY)).toBe(false)
+  })
+
+  it('is not made with too few sessions', async () => {
+    await trainWeeks([40, 40, 40])
+    expect(await fullPlanSuggested(db, TODAY)).toBe(false)
+  })
+
+  it('can be postponed by two weeks and never switches by itself', async () => {
+    await trainWeeks([40, 40, 40, 40])
+    await snoozePhaseSuggestion(db, TODAY)
+    expect(await fullPlanSuggested(db, '2030-02-14')).toBe(false)
+    expect(await fullPlanSuggested(db, '2030-02-15')).toBe(true)
+    expect(await getPlanPhase(db)).toBe('einstieg')
+  })
+
+  it('ends once the user confirms the switch', async () => {
+    await trainWeeks([40, 40, 40, 40])
+    await setPlanPhase(db, 'voll', TODAY)
+    expect(await fullPlanSuggested(db, TODAY)).toBe(false)
+  })
+
+  it('counts training weeks anew after switching back to the entry phase', async () => {
+    await trainWeeks([40, 40, 40, 40])
+    await setPlanPhase(db, 'voll', TODAY)
+    await setPlanPhase(db, 'einstieg', '2030-02-04')
+    expect(await fullPlanSuggested(db, '2030-02-04')).toBe(false)
   })
 })

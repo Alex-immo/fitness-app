@@ -236,6 +236,8 @@ export const SEED_EXERCISES: Exercise[] = [
 export const SEED_TEMPLATES: WorkoutTemplate[] = [
   { id: 'A_lang', type: 'straight_sets', estimatedMinutes: 60, countsForProgression: true },
   { id: 'B_lang', type: 'straight_sets', estimatedMinutes: 60, countsForProgression: true },
+  { id: 'A_einstieg', type: 'straight_sets', estimatedMinutes: 40, countsForProgression: true },
+  { id: 'B_einstieg', type: 'straight_sets', estimatedMinutes: 40, countsForProgression: true },
   { id: 'kurzzirkel', type: 'circuit', estimatedMinutes: 25, countsForProgression: false },
   { id: 'reisezirkel', type: 'circuit', estimatedMinutes: 25, countsForProgression: false },
   { id: 'bike_z2', type: 'cardio', estimatedMinutes: 45, countsForProgression: false },
@@ -286,6 +288,27 @@ export const SEED_TEMPLATE_ITEMS: TemplateItem[] = [
     ['shoulder_press_kneeling', 3, 10, 15, 60, 'kniend verhindert das Ausweichen ins Hohlkreuz'],
     ['biceps_curl', 2, 12, 15, 45],
     ['calf_raise_single_leg', 2, 15, 20, 30],
+    ['dead_bug', 2, 10, 10, 30],
+  ]),
+  // Entry phase: same ranges, rests and notes as the long versions; fewer
+  // exercises and sets. The order groups exercises with similar loading so
+  // fewer plates have to be changed. Do not reorder.
+  ...items('A_einstieg', [
+    ['front_squat_db', 3, 10, 15, 90, '3 s ablassen, 1 s Pause unten'],
+    ['floor_press', 2, 12, 15, 60, 'Ellbogen kurz am Boden absetzen'],
+    ['bulgarian_split_squat', 2, 10, 12, 60, 'stärkster Beinreiz im Plan'],
+    ['pushup_feet_elevated', 3, 8, 15, 60, 'Hanteln als Griffe für mehr Tiefe'],
+    ['row_one_arm', 3, 12, 15, 45, '1 s Halten in der Endposition'],
+    ['lateral_raise', 2, 12, 15, 45],
+    ['hanging_knee_raise', 2, 8, 12, 45, 'ohne Schwung'],
+  ]),
+  ...items('B_einstieg', [
+    ['rdl_single_leg', 3, 10, 12, 75, '3 s ablassen'],
+    ['pullup', 3, null, null, 90, 'nach Einstufung'],
+    ['shoulder_press_kneeling', 2, 10, 15, 60, 'kniend verhindert das Ausweichen ins Hohlkreuz'],
+    ['reverse_fly', 2, 12, 15, 45],
+    ['glute_bridge_single_leg', 2, 12, 15, 60, 'Hantel auf der Hüfte'],
+    ['row_one_arm', 3, 12, 15, 60],
     ['dead_bug', 2, 10, 10, 30],
   ]),
   // Circuits: four rounds, no rest within a round, 45 s between rounds.

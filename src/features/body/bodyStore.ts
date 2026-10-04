@@ -61,6 +61,8 @@ export async function createProfile(db: FitnessDatabase, input: ProfileInput, to
       kcalTarget: targets.kcalTarget,
       proteinTargetG: targets.proteinMinG,
       gainTargetPctPerWeek: (TREND_MIN_PCT_PER_WEEK + TREND_MAX_PCT_PER_WEEK) / 2,
+      planPhase: 'einstieg',
+      planPhaseSince: today,
     })
     await logWeight(db, today, input.weightKg)
   })

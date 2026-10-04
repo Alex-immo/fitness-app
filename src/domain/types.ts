@@ -7,7 +7,10 @@ export type Side = 'links' | 'rechts'
 export type Sex = 'male' | 'female'
 
 export type DayType = 'homeoffice' | 'buero' | 'reise' | 'wochenende'
-export type LongTemplateId = 'A_lang' | 'B_lang'
+export type PlanPhase = 'einstieg' | 'voll'
+/** A and B rotate; each exists as a full and as an entry-phase template. */
+export type RotationSlot = 'A' | 'B'
+export type LongTemplateId = 'A_lang' | 'B_lang' | 'A_einstieg' | 'B_einstieg'
 export type TemplateId = LongTemplateId | 'kurzzirkel' | 'reisezirkel' | 'bike_z2'
 
 export type Stage = 1 | 2 | 3 | 4 | 5
@@ -34,7 +37,6 @@ export interface ProgressionState {
   currentStage: Stage
   /** Total weight per dumbbell including the bar; null for exercises without a dumbbell. */
   currentLoadKg: number | null
-  currentSets: number
   currentRepMin: number
   currentRepMax: number
   consecutiveTargetHits: number

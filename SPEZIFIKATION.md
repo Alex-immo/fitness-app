@@ -69,7 +69,7 @@ Der Tagtyp bestimmt das Workout.
 
 | Tagtyp | Dauer | Workout |
 | --- | --- | --- |
-| Homeoffice | ca. 60 Min | A lang oder B lang |
+| Homeoffice | ca. 60 Min (Einstiegsphase: unter 45 Min) | A oder B, je nach Planvariante lang oder Einstieg |
 | Büro | ca. 30 Min | Kurzzirkel |
 | Reise | 20–25 Min | Reisezirkel ohne Equipment |
 | Wochenende | 40–50 Min | Bike Zone 2 |
@@ -83,6 +83,14 @@ Regeln:
 5. An Reisetagen ersetzt der Reisezirkel die Einheit, ebenfalls ohne Nachholen.
 6. Zone-2-Bike nie am selben Morgen wie Krafttraining. Ausnahme: 6 Min lockeres Kurbeln als Warm-up.
 7. Die Wochenplanung braucht pro Woche eine Eingabe: den Tagtyp je Wochentag. Die App belegt daraus die Slots.
+8. Planvariante: Die Einstellung `plan_phase` ("einstieg" | "voll", Vorbelegung "einstieg") bestimmt, welche Vorlage an Homeoffice-Tagen gilt: A Einstieg / B Einstieg oder A lang / B lang. Die Rotation A → B läuft über einen Phasenwechsel hinweg weiter. Kurzzirkel, Reisezirkel und Bike sind von der Planvariante unabhängig. Beim Umschalten wechseln alle noch offenen Homeoffice-Einheiten auf die neue Variante; erledigte bleiben, wie sie waren.
+
+### Wechsel von der Einstiegsphase auf den vollen Plan
+
+- Vorschlag: Nach 4 Trainingswochen in der Einstiegsphase prüft die App die letzten zwei erledigten Einstiegs-Einheiten. Lagen beide unter 45 Minuten, schlägt sie den Wechsel auf "voll" vor.
+- Der Nutzer bestätigt oder verschiebt um zwei Wochen. Die App wechselt nie von selbst.
+- Manuelles Umschalten in den Einstellungen ist jederzeit möglich, in beide Richtungen.
+- Eine Trainingswoche in der Einstiegsphase ist eine Kalenderwoche mit mindestens einer erledigten Einstiegs-Einheit seit dem letzten Wechsel in die Einstiegsphase.
 
 Beispielwochen:
 
@@ -154,7 +162,35 @@ RIR = Wiederholungen, die im Satz bis zum Muskelversagen noch möglich gewesen w
 | 8 | `calf_raise_single_leg` | 2 | 15–20 je Bein | 30 s | |
 | 9 | `dead_bug` | 2 | 10 je Seite | 30 s | |
 
-Kürzungsregel: Überschreitet die gemessene Dauer einer Langversion zweimal in Folge 55 Min, schlägt die App vor, Übung 7 zu streichen.
+Kürzungsregel: Überschreitet die gemessene Dauer einer Langversion zweimal in Folge 55 Min, schlägt die App vor, Übung 7 zu streichen. Die Regel gilt nur für A lang und B lang, nicht für die Einstiegsvorlagen.
+
+### 5.3a Einstiegsphase (A Einstieg, B Einstieg)
+
+Kürzere Planvariante für den Anfang: je 7 Übungen und 17 Sätze. Wiederholungsbereiche, Pausen und Hinweise sind dieselben wie in den Langversionen; nur Auswahl, Satzzahl und Reihenfolge unterscheiden sich. Die Reihenfolge bündelt Übungen mit ähnlicher Beladung, damit weniger umgeladen wird, und ist deshalb fest. Beide Vorlagen zählen für die Progression.
+
+A Einstieg:
+
+| # | Übungs-ID | Sätze | Wdh. | Pause |
+| --- | --- | --- | --- | --- |
+| 1 | `front_squat_db` | 3 | 10–15 | 90 s |
+| 2 | `floor_press` | 2 | 12–15 | 60 s |
+| 3 | `bulgarian_split_squat` | 2 | 10–12 je Bein | 60 s |
+| 4 | `pushup_feet_elevated` | 3 | 8–15 | 60 s |
+| 5 | `row_one_arm` | 3 | 12–15 je Seite | 45 s |
+| 6 | `lateral_raise` | 2 | 12–15 | 45 s |
+| 7 | `hanging_knee_raise` | 2 | 8–12 | 45 s |
+
+B Einstieg:
+
+| # | Übungs-ID | Sätze | Wdh. | Pause |
+| --- | --- | --- | --- | --- |
+| 1 | `rdl_single_leg` | 3 | 10–12 je Bein | 75 s |
+| 2 | `pullup` | 3 | nach Einstufung | 90 s |
+| 3 | `shoulder_press_kneeling` | 2 | 10–15 | 60 s |
+| 4 | `reverse_fly` | 2 | 12–15 | 45 s |
+| 5 | `glute_bridge_single_leg` | 2 | 12–15 je Bein | 60 s |
+| 6 | `row_one_arm` | 3 | 12–15 je Seite | 60 s |
+| 7 | `dead_bug` | 2 | 10 je Seite | 30 s |
 
 ### 5.4 Kurzzirkel (Bürotag, 25 Min inkl. Warm-up)
 
@@ -190,6 +226,8 @@ Jede Übung durchläuft für sich fünf Stufen; den Wechsel löst ein Trigger au
 | 4 | Zusatzsatz | ein Satz mehr, einmalig pro Übung | Trigger erfüllt |
 | 5 | Variante | schwerere Variante laut Tabelle unten; Wiederholungen zurück auf die Untergrenze | Trigger erfüllt: Equipment-Grenze |
 
+Der Progressionsstand gilt pro Übung über beide Planvarianten hinweg. Die Satzzahl kommt immer aus der Vorlage der jeweiligen Einheit; der Zusatzsatz aus Stufe 4 wird als +1 darauf gerechnet und nicht als feste Zahl gespeichert.
+
 Stufe 1 und 2 wechseln sich ab, solange die Last unter dem Deckel liegt (doppelte Progression): Obergrenze erreicht, Last hoch, Wiederholungen zurück. Übungen am Deckel und Übungen ohne Hantel starten in Stufe 2.
 
 Große Lastsprünge: Ist der Sprung zur nächsten Laststufe größer als 15 % der aktuellen Last, steigt zuerst die obere Wiederholungsgrenze um 5. Erst wenn auch die erreicht ist, folgt der Lastsprung, und der Wiederholungsbereich geht auf den Ursprungswert zurück.
@@ -199,13 +237,13 @@ Große Lastsprünge: Ist der Sprung zur nächsten Laststufe größer als 15 % de
 - Aufstieg: In zwei aufeinanderfolgenden Einheiten mit dieser Übung erreichen alle Sätze die obere Wiederholungsgrenze.
 - Schnellaufstieg: Obergrenze in allen Sätzen und RIR 4 oder mehr im letzten Satz. Dann reicht eine Einheit.
 - Rückschritt: Die Untergrenze wird im ersten Satz zweimal in Folge verfehlt. In Stufe 1 und 2 geht die Last eine Stufe zurück. Ab Stufe 3 geht die Übung eine Stufe zurück (Variante, Zusatzsatz oder Tempo entfällt); das gilt auch für Übungen ohne Hantel.
-- Gewertet werden nur A lang und B lang. Kurz- und Reisezirkel werden protokolliert, lösen aber keinen Stufenwechsel aus.
+- Gewertet werden nur A lang, B lang, A Einstieg und B Einstieg. Kurz- und Reisezirkel werden protokolliert, lösen aber keinen Stufenwechsel aus.
 - RIR ist im letzten Satz jeder Übung ein Pflichtfeld.
 - Bei einseitigen Übungen zählt die schwächere Seite.
 
 ### Klimmzüge
 
-Die erste Einheit B beginnt mit einem Einstufungstest: maximale saubere Wiederholungen.
+Die erste Einheit B beginnt mit einem Einstufungstest: maximale saubere Wiederholungen. Die Tabelle nennt die Satzzahl von B lang; in B Einstieg sind es 3 Sätze, und "geschafft" heißt dort: in allen 3 Sätzen.
 
 | Testergebnis | Startschema | Aufstieg |
 | --- | --- | --- |
@@ -228,7 +266,7 @@ Für die übrigen Übungen zeigt die App bei Erreichen von Stufe 5 nur den Hinwe
 
 ### Deload
 
-Nach sieben Trainingswochen schlägt die App eine Deload-Woche vor: halbe Satzzahl (aufgerundet) bei gleicher Last und gleichen Wiederholungen. Die Woche ist ein eigener Wochentyp und zählt nicht für Trigger.
+Nach sieben Trainingswochen schlägt die App eine Deload-Woche vor: halbe Satzzahl (aufgerundet) bei gleicher Last und gleichen Wiederholungen. Die Woche ist ein eigener Wochentyp und zählt nicht für Trigger. Die Zählung der Trainingswochen läuft über beide Planvarianten durch.
 
 ### Equipment-Grenze
 
@@ -300,7 +338,9 @@ Lokale Tabellen. `load_kg` ist das Gesamtgewicht je Hantel inklusive Stange, bei
 ```
 User
   id, height_cm, birth_year, sex, goal,
-  kcal_target, protein_target_g, gain_target_pct_per_week
+  kcal_target, protein_target_g, gain_target_pct_per_week,
+  plan_phase ("einstieg" | "voll"), plan_phase_since,
+  phase_suggestion_snoozed_until
 
 Equipment
   id (slug), name_de, count, bar_weight_kg (null = ohne Last),
@@ -312,7 +352,7 @@ Exercise
   dumbbells_used (0 | 1 | 2), next_variant_text (null), cue_text
 
 WorkoutTemplate
-  id ("A_lang" | "B_lang" | "kurzzirkel" | "reisezirkel" | "bike_z2"),
+  id ("A_lang" | "B_lang" | "A_einstieg" | "B_einstieg" | "kurzzirkel" | "reisezirkel" | "bike_z2"),
   type ("straight_sets" | "circuit" | "cardio"), estimated_minutes,
   counts_for_progression (bool)
 
@@ -340,7 +380,7 @@ SetLog
 
 ProgressionState
   user_id, exercise_id, current_stage (1-5), current_load_kg,
-  current_sets, current_rep_min, current_rep_max,
+  current_rep_min, current_rep_max,
   consecutive_target_hits, updated_at
 
 ProgressionEvent
@@ -368,12 +408,13 @@ Entwurfsentscheidungen:
 - `ProgressionState` hält nur den aktuellen Stand; `ProgressionEvent` protokolliert jeden Wechsel. So lässt sich jede Entscheidung der App nachvollziehen.
 - Das aktuelle Gewicht ergibt sich aus `BodyWeightLog`, nicht aus `User`.
 - Sätze, Wiederholungsbereich und Pausen stehen in `TemplateItem`, nicht in `Exercise`. Dieselbe Übung kann in A und B unterschiedlich dosiert sein.
+- `ProgressionState` speichert keine Satzzahl. Sie ergibt sich aus der Vorlage plus 1 ab Stufe 4.
 
 ## 10. MVP-Umfang
 
 Muss:
 
-1. Wochenplanung nach Tagtyp (Homeoffice, Büro, Reise) mit automatischer A/B-Rotation
+1. Wochenplanung nach Tagtyp (Homeoffice, Büro, Reise) mit automatischer A/B-Rotation und umschaltbarer Planvariante (Einstieg, voll)
 2. Workout-Ansicht mit Eingabe je Satz (Last, Wiederholungen, RIR im letzten Satz), Pausentimer und Tempo-Hinweis
 3. Progressionsberechnung mit fünf Stufen und Trigger pro Übung, inklusive Klimmzug-Einstufung
 4. Historie pro Übung: Last, Wiederholungen, aktuelle Stufe

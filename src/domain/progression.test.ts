@@ -5,6 +5,7 @@ import {
   evaluateSession,
   initialProgressionState,
   rebaseToLoad,
+  setsFor,
   tempoApplies,
   type LoggedSet,
   type SessionOutcome,
@@ -82,8 +83,9 @@ describe('start state', () => {
     expect(state.currentLoadKg).toBeNull()
   })
 
-  it('takes sets and rep range from the template', () => {
-    expect(start(6.3)).toMatchObject({ currentSets: 3, currentRepMin: 12, currentRepMax: 15 })
+  it('takes the rep range from the template and stores no set count', () => {
+    expect(start(6.3)).toMatchObject({ currentRepMin: 12, currentRepMax: 15 })
+    expect(start(6.3)).not.toHaveProperty('currentSets')
   })
 
   it('rejects a start load that cannot be set', () => {
@@ -180,7 +182,8 @@ describe('stages 3 to 5', () => {
   it('adds exactly one set in stage 4 and then requires it for the trigger', () => {
     const stage3 = runUntilEvent(atCap(), [15, 15, 15]).state
     const { state, event } = runUntilEvent(stage3, [15, 15, 15])
-    expect(state).toMatchObject({ currentStage: 4, currentSets: 4 })
+    expect(state.currentStage).toBe(4)
+    expect(setsFor(state, BASE.sets)).toBe(4)
     expect(event?.reason).toBe('extra_set_added')
 
     expect(run(state, [15, 15, 15]).state.consecutiveTargetHits).toBe(0)
@@ -191,7 +194,8 @@ describe('stages 3 to 5', () => {
     const stage3 = runUntilEvent(atCap(), [15, 15, 15]).state
     const stage4 = runUntilEvent(stage3, [15, 15, 15]).state
     const { state, event } = runUntilEvent(stage4, [15, 15, 15, 15])
-    expect(state).toMatchObject({ currentStage: 5, currentSets: 4, currentRepMin: 12, currentRepMax: 15 })
+    expect(state).toMatchObject({ currentStage: 5, currentRepMin: 12, currentRepMax: 15 })
+    expect(setsFor(state, BASE.sets)).toBe(4)
     expect(event?.reason).toBe('variant_introduced')
     expect(state.stage5Completed).toBe(false)
   })
@@ -206,6 +210,33 @@ describe('stages 3 to 5', () => {
 
     const after = run(run(done.state, [15, 15, 15, 15]).state, [15, 15, 15, 15])
     expect(after.event).toBeNull()
+  })
+})
+
+describe('set count across plan variants', () => {
+  const stage4 = () => {
+    const stage3 = runUntilEvent(start(12.8), [15, 15, 15]).state
+    return runUntilEvent(stage3, [15, 15, 15]).state
+  }
+
+  it('adds the extra set to whatever the template prescribes', () => {
+    expect(setsFor(stage4(), 3)).toBe(4)
+    expect(setsFor(stage4(), 2)).toBe(3)
+    expect(setsFor(start(12.8), 2)).toBe(2)
+    expect(setsFor(undefined, 3)).toBe(3)
+  })
+
+  it('requires template sets plus one in a template with fewer sets', () => {
+    const shortBase: Dose = { sets: 2, repMin: 12, repMax: 15 }
+    expect(run(stage4(), [15, 15], { base: shortBase }).state.consecutiveTargetHits).toBe(0)
+    expect(run(stage4(), [15, 15, 15], { base: shortBase }).state.consecutiveTargetHits).toBe(1)
+  })
+
+  it('counts hits across templates with different set counts', () => {
+    const shortBase: Dose = { sets: 2, repMin: 12, repMax: 15 }
+    const first = run(start(4.3), [15, 15], { base: shortBase })
+    expect(first.state.consecutiveTargetHits).toBe(1)
+    expect(run(first.state, [15, 15, 15]).event?.reason).toBe('load_increase')
   })
 })
 
@@ -261,13 +292,15 @@ describe('step back from stage 3 on and without a dumbbell', () => {
 
   it('removes the extra set: stage 4 back to stage 3', () => {
     const { state } = missTwice(stage4(), [11, 11, 11, 11])
-    expect(state).toMatchObject({ currentStage: 3, currentSets: 3 })
+    expect(state.currentStage).toBe(3)
+    expect(setsFor(state, BASE.sets)).toBe(3)
   })
 
   it('drops the variant: stage 5 back to stage 4, keeping the extra set', () => {
     const done = runUntilEvent(stage5(), [15, 15, 15, 15]).state
     const { state } = missTwice(done, [11, 11, 11, 11])
-    expect(state).toMatchObject({ currentStage: 4, currentSets: 4, stage5Completed: false })
+    expect(state).toMatchObject({ currentStage: 4, stage5Completed: false })
+    expect(setsFor(state, BASE.sets)).toBe(4)
   })
 
   it('also goes one stage back for exercises without a dumbbell', () => {

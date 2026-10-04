@@ -7,6 +7,8 @@ import type { ExerciseTarget } from './workoutModel'
 export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   A_lang: 'Workout A lang',
   B_lang: 'Workout B lang',
+  A_einstieg: 'Workout A Einstieg',
+  B_einstieg: 'Workout B Einstieg',
   kurzzirkel: 'Kurzzirkel',
   reisezirkel: 'Reisezirkel',
   bike_z2: 'Bike Zone 2',

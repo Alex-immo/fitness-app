@@ -8,9 +8,17 @@ import { computeLoadSteps } from '../domain/loads'
 const itemsOf = (templateId: string) => SEED_TEMPLATE_ITEMS.filter((item) => item.templateId === templateId)
 
 describe('seed catalogue', () => {
-  it('contains the 19 exercises, 5 templates and 5 pieces of equipment from the spec', () => {
+  it('contains the 19 exercises, 7 templates and 5 pieces of equipment from the spec', () => {
     expect(SEED_EXERCISES).toHaveLength(19)
-    expect(SEED_TEMPLATES.map((t) => t.id)).toEqual(['A_lang', 'B_lang', 'kurzzirkel', 'reisezirkel', 'bike_z2'])
+    expect(SEED_TEMPLATES.map((t) => t.id)).toEqual([
+      'A_lang',
+      'B_lang',
+      'A_einstieg',
+      'B_einstieg',
+      'kurzzirkel',
+      'reisezirkel',
+      'bike_z2',
+    ])
     expect(SEED_EQUIPMENT).toHaveLength(5)
   })
 
@@ -43,9 +51,52 @@ describe('seed catalogue', () => {
     expect(itemsOf('A_lang').map((item) => item.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
   })
 
-  it('counts only the long versions for progression', () => {
+  it('counts the long versions and the entry templates for progression', () => {
     const counting = SEED_TEMPLATES.filter((t) => t.countsForProgression).map((t) => t.id)
-    expect(counting).toEqual(['A_lang', 'B_lang'])
+    expect(counting).toEqual(['A_lang', 'B_lang', 'A_einstieg', 'B_einstieg'])
+  })
+
+  it('has the entry templates with 7 exercises and 17 sets each, in the fixed order', () => {
+    const exercisesOf = (templateId: string) => itemsOf(templateId).map((item) => `${item.exerciseId}:${item.sets}`)
+    expect(exercisesOf('A_einstieg')).toEqual([
+      'front_squat_db:3',
+      'floor_press:2',
+      'bulgarian_split_squat:2',
+      'pushup_feet_elevated:3',
+      'row_one_arm:3',
+      'lateral_raise:2',
+      'hanging_knee_raise:2',
+    ])
+    expect(exercisesOf('B_einstieg')).toEqual([
+      'rdl_single_leg:3',
+      'pullup:3',
+      'shoulder_press_kneeling:2',
+      'reverse_fly:2',
+      'glute_bridge_single_leg:2',
+      'row_one_arm:3',
+      'dead_bug:2',
+    ])
+    for (const id of ['A_einstieg', 'B_einstieg']) {
+      expect(itemsOf(id).reduce((sum, item) => sum + item.sets, 0)).toBe(17)
+    }
+  })
+
+  it('keeps rep ranges, rests and notes of the long versions in the entry templates', () => {
+    for (const [entryId, longId] of [
+      ['A_einstieg', 'A_lang'],
+      ['B_einstieg', 'B_lang'],
+    ] as const) {
+      for (const item of itemsOf(entryId)) {
+        const long = itemsOf(longId).find((other) => other.exerciseId === item.exerciseId)
+        expect(long, `${item.exerciseId} in ${longId}`).toBeDefined()
+        expect([item.repMin, item.repMax, item.restSeconds, item.note]).toEqual([
+          long?.repMin,
+          long?.repMax,
+          long?.restSeconds,
+          long?.note,
+        ])
+      }
+    }
   })
 
   it('doses the same exercise per template', () => {
@@ -94,8 +145,8 @@ describe('database', () => {
     const database = new FitnessDatabase('fitness-app-test')
     await database.open()
     expect(await database.exercises.count()).toBe(19)
-    expect(await database.workoutTemplates.count()).toBe(5)
-    expect(await database.templateItems.count()).toBe(26)
+    expect(await database.workoutTemplates.count()).toBe(7)
+    expect(await database.templateItems.count()).toBe(40)
     expect(await database.equipment.count()).toBe(5)
     expect(await database.users.count()).toBe(0)
     expect(await database.bodyWeightLogs.count()).toBe(0)
@@ -105,8 +156,22 @@ describe('database', () => {
 
   it('brings the catalogue of a version 1 database up to date and keeps user data', async () => {
     const old = new Dexie('fitness-app-upgrade-test')
-    old.version(1).stores({ exercises: 'id', equipment: 'id', bodyWeightLogs: '++id, userId, date' })
+    old.version(1).stores({
+      exercises: 'id',
+      equipment: 'id',
+      users: 'id',
+      bodyWeightLogs: '++id, userId, date',
+      progressionStates: '[userId+exerciseId], exerciseId',
+    })
     await old.open()
+    await old.table('users').put({ id: 'test-user', heightCm: 200 })
+    await old.table('progressionStates').put({
+      userId: 'test-user',
+      exerciseId: 'front_squat_db',
+      currentStage: 4,
+      currentLoadKg: 12.8,
+      currentSets: 5,
+    })
     await old.table('exercises').put({ id: 'glute_bridge_single_leg', dumbbellsUsed: 2 })
     await old.table('equipment').put({ id: 'dumbbell', barWeightKg: 3 })
     await old.table('bodyWeightLogs').add({ userId: 'test-user', date: '2030-01-07', weightKg: 100 })
@@ -118,6 +183,12 @@ describe('database', () => {
     expect(await database.exercises.count()).toBe(19)
     expect((await database.equipment.get('dumbbell'))?.barWeightKg).toBe(3)
     expect(await database.bodyWeightLogs.count()).toBe(1)
+    // Version 3: entry templates, plan variant, no stored set count.
+    expect(await database.workoutTemplates.get('A_einstieg')).toBeDefined()
+    expect(await database.users.get('test-user')).toMatchObject({ heightCm: 200, planPhase: 'einstieg' })
+    const state = await database.progressionStates.get(['test-user', 'front_squat_db'])
+    expect(state).toMatchObject({ currentStage: 4, currentLoadKg: 12.8 })
+    expect(state).not.toHaveProperty('currentSets')
     await database.delete()
   })
 

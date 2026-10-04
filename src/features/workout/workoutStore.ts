@@ -16,6 +16,8 @@ export { LOCAL_USER_ID }
 const DAY_TYPE_BY_TEMPLATE: Record<TemplateId, DayType> = {
   A_lang: 'homeoffice',
   B_lang: 'homeoffice',
+  A_einstieg: 'homeoffice',
+  B_einstieg: 'homeoffice',
   kurzzirkel: 'buero',
   reisezirkel: 'reise',
   bike_z2: 'wochenende',
@@ -173,6 +175,7 @@ export async function finishWorkout(
   return db.transaction(
     'rw',
     [
+      db.users,
       db.sessionLogs,
       db.setLogs,
       db.scheduledSessions,
@@ -206,7 +209,7 @@ export async function finishWorkout(
           const existing = await db.progressionStates.get([LOCAL_USER_ID, exercise.id])
 
           if (exercise.id === PULLUP_ID) {
-            const result = pullupResult(existing, logs, date)
+            const result = pullupResult(existing, logs, item.sets, date)
             if (!result) continue
             await db.progressionStates.put(result.state)
             if (result.event) events.push(result.event)
@@ -262,6 +265,7 @@ export async function finishWorkout(
 function pullupResult(
   existing: ProgressionStateRecord | undefined,
   logs: SetLog[],
+  templateSets: number,
   date: string,
 ): { state: ProgressionStateRecord; event: ProgressionEventRecord | null } | null {
   const testLog = logs.find((log) => log.setNumber === TEST_SET_NUMBER)
@@ -273,7 +277,7 @@ function pullupResult(
     .filter((log) => log.setNumber > TEST_SET_NUMBER)
     .sort((a, b) => a.setNumber - b.setNumber)
     .map((log) => log.repsDone ?? 0)
-  const outcome = repsPerSet.length > 0 ? evaluatePullupSession(level, repsPerSet) : { level, retestDue: false }
+  const outcome = repsPerSet.length > 0 ? evaluatePullupSession(level, repsPerSet, templateSets) : { level, retestDue: false }
   const scheme = pullupScheme(outcome.level)
 
   const state: ProgressionStateRecord = {
@@ -281,7 +285,6 @@ function pullupResult(
     exerciseId: PULLUP_ID,
     currentStage: 2,
     currentLoadKg: null,
-    currentSets: scheme.sets,
     currentRepMin: scheme.repMin ?? 1,
     currentRepMax: scheme.repMax ?? 5,
     consecutiveTargetHits: 0,

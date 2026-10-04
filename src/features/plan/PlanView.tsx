@@ -10,10 +10,13 @@ import { TEMPLATE_NAMES } from '../workout/texts'
 import { startScheduledSession } from '../workout/workoutStore'
 import {
   closePastWeeks,
+  fullPlanSuggested,
   getWeek,
   logBikeSession,
   saveWeekPlan,
+  setPlanPhase,
   setSessionDropped,
+  snoozePhaseSuggestion,
   suggestedDayTypes,
 } from './planStore'
 
@@ -43,6 +46,7 @@ export function PlanView() {
   }, [thisWeek])
 
   const week = useLiveQuery(() => getWeek(db, weekStart), [weekStart])
+  const suggestFullPlan = useLiveQuery(() => fullPlanSuggested(db, today), [today])
   const [editing, setEditing] = useState(false)
   if (week === undefined) return null
   const planned = week?.plan.dayTypes !== undefined
@@ -55,6 +59,22 @@ export function PlanView() {
           {formatDayMonth(weekStart)} bis {formatDayMonth(addDays(weekStart, 6))}
         </p>
       </header>
+
+      {suggestFullPlan && (
+        <section className="card card-highlight">
+          <h2>Bereit für den vollen Plan?</h2>
+          <p className="exercise-note">
+            Deine letzten beiden Einstiegs-Einheiten lagen unter 45 Minuten. Der volle Plan hat 9 Übungen und 25 Sätze
+            je Einheit.
+          </p>
+          <button type="button" className="button-primary" onClick={() => void setPlanPhase(db, 'voll', today)}>
+            Auf den vollen Plan wechseln
+          </button>
+          <button type="button" className="button-quiet" onClick={() => void snoozePhaseSuggestion(db, today)}>
+            In zwei Wochen wieder fragen
+          </button>
+        </section>
+      )}
 
       <div className="segmented" role="group" aria-label="Woche">
         {['Diese Woche', 'Nächste Woche'].map((label, offset) => (
@@ -115,7 +135,7 @@ function DayTypeForm({
     <section className="card">
       <h2>Wie sieht die Woche aus?</h2>
       <p className="exercise-note">
-        Kraft liegt auf Montag, Mittwoch und Freitag: Homeoffice ergibt die Langversion, Büro den Kurzzirkel, Reise
+        Kraft liegt auf Montag, Mittwoch und Freitag: Homeoffice ergibt Workout A oder B, Büro den Kurzzirkel, Reise
         den Reisezirkel.
       </p>
       {dayTypes.map((dayType, index) => (

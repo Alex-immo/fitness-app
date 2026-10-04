@@ -4,6 +4,7 @@ import type {
   DumbbellsUsed,
   IsoDate,
   LoadType,
+  PlanPhase,
   PlateStock,
   ProgressionEvent,
   ProgressionState,
@@ -24,6 +25,12 @@ export interface User {
   kcalTarget: number
   proteinTargetG: number
   gainTargetPctPerWeek: number
+  /** Plan variant for home-office days. Missing on records from before it existed: treated as "einstieg". */
+  planPhase?: PlanPhase
+  /** Day the current plan variant began. */
+  planPhaseSince?: IsoDate
+  /** Day until which the suggestion to switch to the full plan is postponed. */
+  phaseSuggestionSnoozedUntil?: IsoDate
 }
 
 export interface Equipment {
