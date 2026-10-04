@@ -5,6 +5,7 @@ import type { TemplateId } from '../../domain/types'
 import { buildWorkoutPlan, openRowKey, type WorkoutPlan } from './workoutModel'
 import {
   discardWorkout,
+  exercisesTrainedBefore,
   finishWorkout,
   getActiveSessionLog,
   LOCAL_USER_ID,
@@ -493,5 +494,29 @@ describe('shortened long version', () => {
     const entry = await planOf(await start('A_einstieg'), { shortenLong: true })
     expect(entry.groups).toHaveLength(7)
     expect([...entry.targets.values()].some((t) => t.exercise.id === 'hanging_knee_raise')).toBe(true)
+  })
+})
+
+describe('how-to of an exercise', () => {
+  const trained = (sessionLogId: number) =>
+    exercisesTrainedBefore(db, sessionLogId, ['front_squat_db', 'floor_press', 'row_one_arm'])
+
+  it('counts an exercise as new until it was logged in an earlier session', async () => {
+    const first = await start('A_lang')
+    expect(await trained(first)).toEqual(new Set())
+    await logExercise(first, 'front_squat_db', 12)
+    // Still the first session with it: the how-to stays open.
+    expect(await trained(first)).toEqual(new Set())
+    await finishWorkout(db, first, null, NOW)
+
+    const second = await start('A_lang', LATER)
+    expect(await trained(second)).toEqual(new Set(['front_squat_db']))
+  })
+
+  it('also counts circuits and other templates as having trained the exercise', async () => {
+    const circuit = await start('kurzzirkel')
+    await logExercise(circuit, 'row_one_arm', 12)
+    await finishWorkout(db, circuit, null, NOW)
+    expect(await trained(await start('B_einstieg', LATER))).toEqual(new Set(['row_one_arm']))
   })
 })

@@ -1,3 +1,4 @@
+import { EXERCISE_TEXTS } from './exerciseTexts'
 import type { Equipment, Exercise, TemplateItem, WorkoutTemplate } from './types'
 import type { TemplateId } from '../domain/types'
 
@@ -30,9 +31,13 @@ export const SEED_EQUIPMENT: Equipment[] = [
   },
 ]
 
-type ExerciseSeed = Omit<Exercise, 'nextVariantText' | 'cueText'> & { nextVariantText?: string; cueText?: string }
+type ExerciseSeed = Omit<Exercise, 'nextVariantText' | 'subtitle' | 'howTo' | 'watchFor'> & { nextVariantText?: string }
 
-const exercise = (seed: ExerciseSeed): Exercise => ({ nextVariantText: null, cueText: '', ...seed })
+const exercise = (seed: ExerciseSeed): Exercise => {
+  const texts = EXERCISE_TEXTS[seed.id]
+  if (!texts) throw new Error(`No display texts for exercise ${seed.id}`)
+  return { nextVariantText: null, ...seed, ...texts }
+}
 
 export const SEED_EXERCISES: Exercise[] = [
   exercise({

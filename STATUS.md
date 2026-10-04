@@ -15,6 +15,7 @@ Stand: 4. Oktober 2026
 - Einstellungen: Versionsanzeige mit Aktualisieren-Knopf; Zurück im laufenden Workout
 - Schritt 8: Backup-Export (Teilen-Menü, sonst Download-Link) und -Import (Zod-Prüfung, Rückfrage, alles oder nichts), wöchentliche Erinnerung im Wochenplan
 - Einstellungen für Profil (Größe, Geburtsjahr, Geschlecht) und Kurzhanteln (Stange, Scheiben, Scheiben pro Seite) mit Abgleich der Progressionsstände
+- Übungstexte (Kurzname, Ausführung, Hinweis) in Seed-Daten, Workout-Ansicht und Seite "Übungen"; Datenbank-Version 4
 
 ## Entscheidungen (4. Oktober 2026)
 

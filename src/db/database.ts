@@ -91,6 +91,9 @@ export class FitnessDatabase extends Dexie {
             user.planPhase ??= 'einstieg'
           })
       })
+    // Version 4: exercises carry display texts (subtitle, how-to, what to watch
+    // for) instead of the unused cue text. Only the catalogue is rewritten.
+    this.version(4).stores({}).upgrade(refreshCatalogue)
     // Runs once, when the database is first created.
     this.on('populate', (transaction) => {
       void transaction.table('equipment').bulkAdd(SEED_EQUIPMENT)

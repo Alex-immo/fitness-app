@@ -4,6 +4,7 @@ import { LOCAL_USER_ID } from '../../db/localUser'
 import type { ProgressionEventRecord, SetLog } from '../../db/types'
 import { formatKg, formatPlatesPerSide } from '../../shared/format'
 import { useLiveQuery } from '../../shared/useLiveQuery'
+import { ExerciseGuide } from './ExerciseGuide'
 import { RestTimer } from './RestTimer'
 import { SetRow } from './SetRow'
 import { pullupHint, setTargetText, TEMPLATE_NAMES, TEMPO_HINT } from './texts'
@@ -12,6 +13,7 @@ import { buildWorkoutPlan, isRowDone, openRowKey, type ExerciseTarget, type Plan
 import {
   clearRest,
   discardWorkout,
+  exercisesTrainedBefore,
   finishWorkout,
   logSet,
   setExerciseLoad,
@@ -47,7 +49,12 @@ export function WorkoutView({ sessionLogId, onFinished, onBack }: WorkoutViewPro
       db.setLogs.where('sessionLogId').equals(sessionLogId).toArray(),
       db.equipment.get('dumbbell'),
     ])
-    return { sessionLog, template, items, exercises, states, setLogs, dumbbell, deload, shortenLong }
+    const trainedBefore = await exercisesTrainedBefore(
+      db,
+      sessionLogId,
+      items.map((item) => item.exerciseId),
+    )
+    return { sessionLog, template, items, exercises, states, setLogs, dumbbell, deload, shortenLong, trainedBefore }
   }, [sessionLogId])
 
   const plan = useMemo(
@@ -74,7 +81,7 @@ export function WorkoutView({ sessionLogId, onFinished, onBack }: WorkoutViewPro
     (sum, group) => sum + group.rows.filter((row) => isRowDone(row, setLogs)).length,
     0,
   )
-  const loadTargets = [...plan.targets.values()].filter((target) => target.loadSteps)
+  const isNew = (exerciseId: string) => !data.trainedBefore.has(exerciseId)
 
   const handleLog = (target: ExerciseTarget, setNumber: number, restSeconds: number) => {
     return (entries: SetEntry[], rir: number | null) => {
@@ -108,17 +115,18 @@ export function WorkoutView({ sessionLogId, onFinished, onBack }: WorkoutViewPro
         )}
       </header>
 
-      {template.type === 'circuit' && loadTargets.length > 0 && (
+      {template.type === 'circuit' && (
         <section className="card">
-          <h2>Lasten</h2>
-          {loadTargets.map((target) => (
-            <LoadPicker
-              key={target.item.id}
-              target={target}
-              label={target.exercise.nameDe}
-              setLogs={setLogs}
-              sessionLogId={sessionLogId}
-            />
+          <h2>Übungen</h2>
+          {[...plan.targets.values()].map((target) => (
+            <div className="circuit-exercise" key={target.item.id}>
+              <p className="set-title">{target.exercise.nameDe}</p>
+              <p className="exercise-note">{target.exercise.subtitle}</p>
+              {target.loadSteps && (
+                <LoadPicker target={target} label="Last" setLogs={setLogs} sessionLogId={sessionLogId} />
+              )}
+              <ExerciseGuide exercise={target.exercise} initiallyOpen={isNew(target.exercise.id)} />
+            </div>
           ))}
         </section>
       )}
@@ -131,6 +139,7 @@ export function WorkoutView({ sessionLogId, onFinished, onBack }: WorkoutViewPro
           setLogs={setLogs}
           sessionLogId={sessionLogId}
           roundCount={plan.groups.length}
+          isNew={isNew}
           onLog={handleLog}
         />
       ))}
@@ -158,6 +167,8 @@ interface GroupCardProps {
   setLogs: SetLog[]
   sessionLogId: number
   roundCount: number
+  /** True for exercises that have not been trained in an earlier session. */
+  isNew: (exerciseId: string) => boolean
   onLog: (
     target: ExerciseTarget,
     setNumber: number,
@@ -165,14 +176,19 @@ interface GroupCardProps {
   ) => (entries: SetEntry[], rir: number | null) => void
 }
 
-function GroupCard({ group, targets, setLogs, sessionLogId, roundCount, onLog }: GroupCardProps) {
+function GroupCard({ group, targets, setLogs, sessionLogId, roundCount, isNew, onLog }: GroupCardProps) {
   const openKey = openRowKey(group, setLogs)
   const groupTarget = group.itemId ? targets.get(group.itemId) : undefined
 
   return (
     <section className={openKey ? 'card' : 'card card-done'}>
       {groupTarget ? (
-        <ExerciseHead target={groupTarget} setLogs={setLogs} sessionLogId={sessionLogId} />
+        <ExerciseHead
+          target={groupTarget}
+          setLogs={setLogs}
+          sessionLogId={sessionLogId}
+          guideOpen={isNew(groupTarget.exercise.id)}
+        />
       ) : (
         <h2>
           Runde {group.round} von {roundCount}
@@ -202,15 +218,18 @@ function ExerciseHead({
   target,
   setLogs,
   sessionLogId,
+  guideOpen,
 }: {
   target: ExerciseTarget
   setLogs: SetLog[]
   sessionLogId: number
+  guideOpen: boolean
 }) {
   const { exercise, item } = target
   return (
     <div className="exercise-head">
       <h2>{exercise.nameDe}</h2>
+      <p className="exercise-note">{exercise.subtitle}</p>
       <p className="exercise-target">
         {target.sets} × {setTargetText(target)}
         {item.withoutLoad && ' · ohne Last'}
@@ -222,6 +241,7 @@ function ExerciseHead({
       {target.loadSteps && (
         <LoadPicker target={target} label="Last" setLogs={setLogs} sessionLogId={sessionLogId} />
       )}
+      <ExerciseGuide exercise={exercise} initiallyOpen={guideOpen} />
     </div>
   )
 }

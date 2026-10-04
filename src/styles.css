@@ -677,3 +677,55 @@ h3 {
 details.card[open] summary {
   margin-bottom: 4px;
 }
+
+/* Exercise how-to */
+
+.guide {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guide-toggle {
+  align-self: flex-start;
+  margin-left: -14px;
+  border-color: transparent;
+}
+
+.guide-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-sunken);
+  font-size: 0.92rem;
+}
+
+.circuit-exercise {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.pattern-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pattern-title {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.exercise-name {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--text);
+}

@@ -62,7 +62,12 @@ export interface Exercise {
   loadType: LoadType
   dumbbellsUsed: DumbbellsUsed
   nextVariantText: string | null
-  cueText: string
+  /** Short everyday name shown under the exercise name. */
+  subtitle: string
+  /** How the exercise is done. */
+  howTo: string
+  /** What to pay attention to. */
+  watchFor: string
   /** Extension: where the spec expects the start load; null without a dumbbell. */
   startLoadHint: StartLoadHint | null
 }

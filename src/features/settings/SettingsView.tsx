@@ -10,6 +10,7 @@ import { getUser } from '../body/bodyStore'
 import { setPlanPhase, setShortenLong } from '../plan/planStore'
 import { getActiveSessionLog } from '../workout/workoutStore'
 import { EquipmentSection } from './EquipmentSection'
+import { ExercisesView } from './ExercisesView'
 import { ProfileSection } from './ProfileSection'
 import { DUMBBELL_ID } from './settingsStore'
 
@@ -27,6 +28,8 @@ export function SettingsView() {
     }),
     [],
   )
+  const [page, setPage] = useState<'settings' | 'exercises'>('settings')
+  if (page === 'exercises') return <ExercisesView onBack={() => setPage('settings')} />
   if (!data?.user) return null
   const { user, dumbbell, workoutRunning } = data
   const phase = user.planPhase ?? 'einstieg'
@@ -77,6 +80,10 @@ export function SettingsView() {
           ))}
         </div>
       </section>
+      <button type="button" className="start-button" onClick={() => setPage('exercises')}>
+        <strong>Übungen</strong>
+        <span>Ausführung und Hinweise zu allen Übungen</span>
+      </button>
       <ProfileSection user={user} />
       {dumbbell && <EquipmentSection dumbbell={dumbbell} workoutRunning={workoutRunning} />}
       <BackupSection />

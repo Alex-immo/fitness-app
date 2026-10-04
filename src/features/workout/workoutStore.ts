@@ -314,3 +314,24 @@ function pullupResult(
       : null,
   }
 }
+
+/**
+ * Exercises that have been logged in an earlier session. The workout view
+ * opens the how-to of all others, i.e. of exercises trained for the first time.
+ */
+export async function exercisesTrainedBefore(
+  db: FitnessDatabase,
+  sessionLogId: number,
+  exerciseIds: string[],
+): Promise<Set<string>> {
+  const trained = new Set<string>()
+  for (const exerciseId of new Set(exerciseIds)) {
+    const earlier = await db.setLogs
+      .where('exerciseId')
+      .equals(exerciseId)
+      .filter((log) => log.sessionLogId !== sessionLogId)
+      .first()
+    if (earlier) trained.add(exerciseId)
+  }
+  return trained
+}

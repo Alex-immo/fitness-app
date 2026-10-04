@@ -126,6 +126,11 @@ Die Spalte Last zeigt, wo die Übung beim Start steht: am Deckel, unter dem Deck
 | `calf_raise_single_leg` | Wadenheben einbeinig | Wade | 1 KH | ja | am Deckel |
 | `dead_bug` | Dead Bug | Rumpf Anti-Extension | Matte | ja | Körpergewicht |
 
+Zu jeder Übung gehören drei Anzeigetexte: ein Kurzname in Alltagssprache (`subtitle`), die Ausführung (`how_to`) und ein Hinweis, worauf zu achten ist (`watch_for`). Die Texte stehen in `UEBUNGSTEXTE.md` und sind in die Seed-Daten übernommen. Die App zeigt sie ohne Bilder und ohne externe Links:
+
+- Workout-Ansicht: Unter dem Übungsnamen steht der Kurzname. Ein Knopf "Ausführung" klappt Ausführung und Hinweis auf. Solange eine Übung noch in keiner früheren Einheit protokolliert wurde, ist der Bereich aufgeklappt, danach standardmäßig zu.
+- Einstellungen, Seite "Übungen": alle Übungen, nach Bewegungsmuster gruppiert, jeweils mit Kurzname, Ausführung und Hinweis.
+
 Kalibrierregel: Startlast ist das Gewicht, mit dem die untere Wiederholungsgrenze bei RIR 2–3 sauber gelingt. Die Einstufung "am Deckel" ist eine Annahme; die App lässt die Startlast in der ersten Einheit jeder Übung frei wählen.
 
 RIR = Wiederholungen, die im Satz bis zum Muskelversagen noch möglich gewesen wären.
@@ -358,7 +363,8 @@ Equipment
 Exercise
   id (slug), name_de, movement_pattern, equipment_ids[], is_unilateral,
   load_type ("hantel" | "koerpergewicht" | "zeit"),
-  dumbbells_used (0 | 1 | 2), next_variant_text (null), cue_text
+  dumbbells_used (0 | 1 | 2), next_variant_text (null),
+  subtitle, how_to, watch_for
 
 WorkoutTemplate
   id ("A_lang" | "B_lang" | "A_einstieg" | "B_einstieg" | "kurzzirkel" | "reisezirkel" | "bike_z2"),

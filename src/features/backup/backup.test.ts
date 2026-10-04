@@ -61,7 +61,7 @@ describe('export', () => {
     expect(backup).toMatchObject({
       app: 'fitness-app',
       formatVersion: BACKUP_FORMAT_VERSION,
-      schemaVersion: 3,
+      schemaVersion: 4,
       exportedAt: '2030-01-20T09:00:00',
     })
     expect(Object.keys(backup.data).sort()).toEqual(

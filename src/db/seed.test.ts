@@ -1,9 +1,12 @@
 import 'fake-indexeddb/auto'
 import Dexie from 'dexie'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { FitnessDatabase } from './database'
+import { EXERCISE_TEXTS } from './exerciseTexts'
 import { SEED_EQUIPMENT, SEED_EXERCISES, SEED_TEMPLATE_ITEMS, SEED_TEMPLATES } from './seed'
 import { computeLoadSteps } from '../domain/loads'
+import { groupByMovementPattern } from '../features/settings/ExercisesView'
 
 const itemsOf = (templateId: string) => SEED_TEMPLATE_ITEMS.filter((item) => item.templateId === templateId)
 
@@ -140,6 +143,47 @@ describe('seed catalogue', () => {
   })
 })
 
+describe('exercise texts', () => {
+  it('gives every exercise of the catalogue all three texts', () => {
+    for (const exercise of SEED_EXERCISES) {
+      for (const text of [exercise.subtitle, exercise.howTo, exercise.watchFor]) {
+        expect(text.trim().length, exercise.id).toBeGreaterThan(5)
+      }
+    }
+  })
+
+  it('has texts for exactly the exercises of the catalogue', () => {
+    expect(Object.keys(EXERCISE_TEXTS).sort()).toEqual(SEED_EXERCISES.map((exercise) => exercise.id).sort())
+  })
+
+  it('matches UEBUNGSTEXTE.md word for word', () => {
+    const document = readFileSync('UEBUNGSTEXTE.md', 'utf8')
+    const field = (id: string, name: string) =>
+      new RegExp(`^## ${id}\\n(?:- .*\\n)*?- ${name}: (.*)$`, 'm').exec(document)?.[1]?.trim()
+    for (const exercise of SEED_EXERCISES) {
+      expect(field(exercise.id, 'subtitle'), exercise.id).toBe(exercise.subtitle)
+      expect(field(exercise.id, 'how_to'), exercise.id).toBe(exercise.howTo)
+      expect(field(exercise.id, 'watch_for'), exercise.id).toBe(exercise.watchFor)
+    }
+  })
+
+  it('groups all exercises by movement pattern for the exercise page', () => {
+    // The database returns exercises sorted by id; the page keeps the catalogue order.
+    const groups = groupByMovementPattern([...SEED_EXERCISES].sort((a, b) => a.id.localeCompare(b.id)))
+    expect(groups[0]?.pattern).toBe('Knie (Squat)')
+    expect(groups.flatMap((group) => group.exercises)).toHaveLength(19)
+    expect(new Set(groups.map((group) => group.pattern)).size).toBe(groups.length)
+    expect(groups.find((group) => group.pattern === 'Knie (Squat)')?.exercises.map((e) => e.id)).toEqual([
+      'front_squat_db',
+      'goblet_squat',
+    ])
+  })
+
+  it('contains no links', () => {
+    expect(JSON.stringify(EXERCISE_TEXTS)).not.toMatch(/https?:|www\./)
+  })
+})
+
 describe('database', () => {
   it('seeds the catalogue on first open and leaves user tables empty', async () => {
     const database = new FitnessDatabase('fitness-app-test')
@@ -172,7 +216,7 @@ describe('database', () => {
       currentLoadKg: 12.8,
       currentSets: 5,
     })
-    await old.table('exercises').put({ id: 'glute_bridge_single_leg', dumbbellsUsed: 2 })
+    await old.table('exercises').put({ id: 'glute_bridge_single_leg', dumbbellsUsed: 2, cueText: '' })
     await old.table('equipment').put({ id: 'dumbbell', barWeightKg: 3 })
     await old.table('bodyWeightLogs').add({ userId: 'test-user', date: '2030-01-07', weightKg: 100 })
     old.close()
@@ -183,6 +227,12 @@ describe('database', () => {
     expect(await database.exercises.count()).toBe(19)
     expect((await database.equipment.get('dumbbell'))?.barWeightKg).toBe(3)
     expect(await database.bodyWeightLogs.count()).toBe(1)
+    // Version 4: display texts replace the cue text.
+    const bridge = await database.exercises.get('glute_bridge_single_leg')
+    expect(bridge).toMatchObject({ subtitle: 'Hüftheben auf einem Bein' })
+    expect(bridge?.howTo).toBeTruthy()
+    expect(bridge?.watchFor).toBeTruthy()
+    expect(bridge).not.toHaveProperty('cueText')
     // Version 3: entry templates, plan variant, no stored set count.
     expect(await database.workoutTemplates.get('A_einstieg')).toBeDefined()
     expect(await database.users.get('test-user')).toMatchObject({ heightCm: 200, planPhase: 'einstieg' })
