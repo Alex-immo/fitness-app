@@ -442,3 +442,81 @@ select:disabled {
   border: 1px solid var(--border);
   background: var(--surface-sunken);
 }
+
+/* Tab bar, pinned to the bottom within thumb reach */
+
+.screen-with-nav {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 84px);
+}
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 6px;
+  padding: 6px calc(env(safe-area-inset-right) + 12px) calc(env(safe-area-inset-bottom) + 6px)
+    calc(env(safe-area-inset-left) + 12px);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.tab {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.tab-selected {
+  background: var(--surface-sunken);
+  color: var(--accent);
+}
+
+/* Body */
+
+.big-number {
+  font-size: 1.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.card progress {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--accent);
+}
+
+.segmented-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.weeks {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.weeks th,
+.weeks td {
+  padding: 8px 4px;
+  text-align: right;
+  border-top: 1px solid var(--border);
+  font-weight: 400;
+}
+
+.weeks thead th {
+  border-top: 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.weeks th:first-child {
+  text-align: left;
+}

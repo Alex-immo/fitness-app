@@ -1,4 +1,5 @@
-import type { Sex } from './types'
+import { addDays, weekStartOf } from './dates'
+import type { IsoDate, Sex } from './types'
 
 // Calorie target and weight trend (SPEZIFIKATION.md section 7).
 
@@ -103,4 +104,58 @@ export function evaluateTrend(input: {
     oldTarget: currentTarget,
     newTarget: currentTarget + adjustmentKcal,
   }
+}
+
+/** The calorie target is evaluated every two weeks. */
+export const EVALUATION_INTERVAL_WEEKS = 2
+
+export interface WeighIn {
+  date: IsoDate
+  weightKg: number
+}
+
+export function weighInsOfWeek(weighIns: readonly WeighIn[], weekStart: IsoDate): number[] {
+  const nextWeek = addDays(weekStart, 7)
+  return weighIns.filter((entry) => entry.date >= weekStart && entry.date < nextWeek).map((entry) => entry.weightKg)
+}
+
+export interface WeekSummary {
+  weekStart: IsoDate
+  count: number
+  meanKg: number | null
+  /** Change of the mean against the week before, in percent; null if either week has no weigh-in. */
+  changePct: number | null
+}
+
+/** Weekly means of the last `weeks` weeks up to and including the current one, oldest first. */
+export function summarizeWeeks(weighIns: readonly WeighIn[], currentWeekStart: IsoDate, weeks: number): WeekSummary[] {
+  const meanOf = (weekStart: IsoDate) => weeklyMean(weighInsOfWeek(weighIns, weekStart))
+  return Array.from({ length: weeks }, (_, index) => {
+    const weekStart = addDays(currentWeekStart, (index - weeks + 1) * 7)
+    const meanKg = meanOf(weekStart)
+    const previous = meanOf(addDays(weekStart, -7))
+    return {
+      weekStart,
+      count: weighInsOfWeek(weighIns, weekStart).length,
+      meanKg,
+      changePct:
+        meanKg === null || previous === null ? null : Math.round(((meanKg - previous) / previous) * 100 * 1000) / 1000,
+    }
+  })
+}
+
+/**
+ * An evaluation is due once two full weeks have passed since the anchor: the
+ * last evaluation, or the first weigh-in if there has been none. It then looks
+ * at the two complete weeks before the current one.
+ */
+export function kcalEvaluationDue(today: IsoDate, anchorDate: IsoDate | null): boolean {
+  if (anchorDate === null) return false
+  return weekStartOf(today) >= addDays(weekStartOf(anchorDate), EVALUATION_INTERVAL_WEEKS * 7)
+}
+
+/** The two complete weeks before the current one. */
+export function evaluationWeeks(today: IsoDate): { firstWeekStart: IsoDate; secondWeekStart: IsoDate } {
+  const currentWeekStart = weekStartOf(today)
+  return { firstWeekStart: addDays(currentWeekStart, -14), secondWeekStart: addDays(currentWeekStart, -7) }
 }

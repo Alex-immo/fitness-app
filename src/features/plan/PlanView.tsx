@@ -48,7 +48,7 @@ export function PlanView() {
   const planned = week?.plan.dayTypes !== undefined
 
   return (
-    <main className="screen">
+    <main className="screen screen-with-nav">
       <header className="screen-head">
         <h1>Wochenplan</h1>
         <p>

@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { basalMetabolicRate, evaluateTrend, proteinRangeG, startTargets, weeklyMean } from './nutrition'
+import {
+  basalMetabolicRate,
+  evaluateTrend,
+  evaluationWeeks,
+  kcalEvaluationDue,
+  proteinRangeG,
+  startTargets,
+  summarizeWeeks,
+  weeklyMean,
+  weighInsOfWeek,
+} from './nutrition'
 
 // All values are invented round numbers, not anyone's real data.
 
@@ -76,5 +86,47 @@ describe('biweekly calorie rule', () => {
     expect(evaluate([100], [100.6, 100.6])).toEqual({ kind: 'insufficient_data' })
     expect(evaluate([100, 100], [100.6])).toEqual({ kind: 'insufficient_data' })
     expect(evaluate([], [])).toEqual({ kind: 'insufficient_data' })
+  })
+})
+
+describe('weeks', () => {
+  const weighIns = [
+    { date: '2030-01-07', weightKg: 100 },
+    { date: '2030-01-13', weightKg: 102 },
+    { date: '2030-01-14', weightKg: 101.5 },
+    { date: '2030-01-16', weightKg: 101.5 },
+  ]
+
+  it('groups weigh-ins by week from Monday to Sunday', () => {
+    expect(weighInsOfWeek(weighIns, '2030-01-07')).toEqual([100, 102])
+    expect(weighInsOfWeek(weighIns, '2030-01-14')).toEqual([101.5, 101.5])
+  })
+
+  it('summarises the last weeks with mean, count and change', () => {
+    expect(summarizeWeeks(weighIns, '2030-01-14', 3)).toEqual([
+      { weekStart: '2029-12-31', count: 0, meanKg: null, changePct: null },
+      { weekStart: '2030-01-07', count: 2, meanKg: 101, changePct: null },
+      { weekStart: '2030-01-14', count: 2, meanKg: 101.5, changePct: 0.495 },
+    ])
+  })
+})
+
+describe('evaluation rhythm', () => {
+  it('is due two full weeks after the first weigh-in', () => {
+    expect(kcalEvaluationDue('2030-01-20', '2030-01-09')).toBe(false)
+    expect(kcalEvaluationDue('2030-01-21', '2030-01-09')).toBe(true)
+  })
+
+  it('is due again two weeks after the last evaluation', () => {
+    expect(kcalEvaluationDue('2030-02-03', '2030-01-21')).toBe(false)
+    expect(kcalEvaluationDue('2030-02-04', '2030-01-21')).toBe(true)
+  })
+
+  it('is never due without a weigh-in', () => {
+    expect(kcalEvaluationDue('2030-01-21', null)).toBe(false)
+  })
+
+  it('looks at the two complete weeks before the current one', () => {
+    expect(evaluationWeeks('2030-01-23')).toEqual({ firstWeekStart: '2030-01-07', secondWeekStart: '2030-01-14' })
   })
 })
