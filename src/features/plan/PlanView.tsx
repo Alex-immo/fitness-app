@@ -35,7 +35,12 @@ const STATUS_LABELS: Record<SessionStatus, string> = {
   ausgefallen: 'ausgefallen',
 }
 
-export function PlanView() {
+interface PlanViewProps {
+  /** Set while a workout is running in the background: returns to it. */
+  onResumeWorkout?: () => void
+}
+
+export function PlanView({ onResumeWorkout }: PlanViewProps) {
   const today = toIsoDate(new Date())
   const thisWeek = weekStartOf(today)
   const [weekOffset, setWeekOffset] = useState(0)
@@ -59,6 +64,16 @@ export function PlanView() {
           {formatDayMonth(weekStart)} bis {formatDayMonth(addDays(weekStart, 6))}
         </p>
       </header>
+
+      {onResumeWorkout && (
+        <section className="card card-highlight">
+          <h2>Ein Workout läuft</h2>
+          <p className="exercise-note">Dein Zwischenstand ist gespeichert.</p>
+          <button type="button" className="button-primary" onClick={onResumeWorkout}>
+            Workout fortsetzen
+          </button>
+        </section>
+      )}
 
       {suggestFullPlan && (
         <section className="card card-highlight">
@@ -106,7 +121,7 @@ export function PlanView() {
             <p className="exercise-note">In dieser Woche ist nichts geplant.</p>
           )}
           {week.sessions.map((session) => (
-            <SessionCard key={session.id} session={session} today={today} />
+            <SessionCard key={session.id} session={session} today={today} canStart={!onResumeWorkout} />
           ))}
           <button type="button" className="button-quiet" onClick={() => setEditing(true)}>
             Tagtypen ändern
@@ -173,7 +188,16 @@ function DayTypeForm({
   )
 }
 
-function SessionCard({ session, today }: { session: ScheduledSession; today: IsoDate }) {
+function SessionCard({
+  session,
+  today,
+  canStart,
+}: {
+  session: ScheduledSession
+  today: IsoDate
+  /** False while another workout is running. */
+  canStart: boolean
+}) {
   const [bikeFormOpen, setBikeFormOpen] = useState(false)
   const isToday = session.date === today
   const isBike = session.templateId === 'bike_z2'
@@ -197,6 +221,7 @@ function SessionCard({ session, today }: { session: ScheduledSession; today: Iso
           <button
             type="button"
             className={isToday ? 'button-primary' : 'button-secondary'}
+            disabled={!canStart && !isBike}
             onClick={() => (isBike ? setBikeFormOpen(true) : void startScheduledSession(db, id, new Date()))}
           >
             {isBike ? 'Einheit eintragen' : 'Starten'}

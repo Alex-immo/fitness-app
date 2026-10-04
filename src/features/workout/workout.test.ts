@@ -197,14 +197,15 @@ describe('running workout', () => {
     expect(log).toMatchObject({ durationS: 40, repsDone: null, loadKg: null })
   })
 
-  it('can be discarded without leaving anything behind', async () => {
+  it('can be discarded: the sets go, the session stays in the plan', async () => {
     const id = await start('A_lang')
     await logExercise(id, 'front_squat_db', 12)
     await discardWorkout(db, id)
     expect(await db.sessionLogs.count()).toBe(0)
     expect(await db.setLogs.count()).toBe(0)
-    expect(await db.scheduledSessions.count()).toBe(0)
+    expect(await db.scheduledSessions.toArray()).toMatchObject([{ status: 'geplant' }])
     expect(await db.progressionStates.count()).toBe(0)
+    expect(await getActiveSessionLog(db)).toBeUndefined()
   })
 })
 

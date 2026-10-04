@@ -152,13 +152,13 @@ export async function clearRest(db: FitnessDatabase, sessionLogId: number): Prom
     })
 }
 
+/** Throws away the running workout and its sets. The session stays in the plan and can be started again. */
 export async function discardWorkout(db: FitnessDatabase, sessionLogId: number): Promise<void> {
-  await db.transaction('rw', db.sessionLogs, db.setLogs, db.scheduledSessions, async () => {
+  await db.transaction('rw', db.sessionLogs, db.setLogs, async () => {
     const log = await db.sessionLogs.get(sessionLogId)
     if (!log || log.finishedAt !== null) return
     await db.setLogs.where('sessionLogId').equals(sessionLogId).delete()
     await db.sessionLogs.delete(sessionLogId)
-    await db.scheduledSessions.delete(log.scheduledSessionId)
   })
 }
 

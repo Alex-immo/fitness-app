@@ -25,15 +25,31 @@ export function App() {
   )
   const [summary, setSummary] = useState<ProgressionEventRecord[] | null>(null)
   const [tab, setTab] = useState<Tab>('plan')
+  // "Zurück" in a running workout shows the tabs again; the workout keeps running.
+  const [workoutHidden, setWorkoutHidden] = useState(false)
 
   if (state === undefined) return null
   if (!state.user) return <Onboarding />
-  if (summary) return <Summary events={summary} onClose={() => setSummary(null)} />
-  if (state.active?.id !== undefined) return <WorkoutView sessionLogId={state.active.id} onFinished={setSummary} />
+  if (summary) {
+    return (
+      <Summary
+        events={summary}
+        onClose={() => {
+          setSummary(null)
+          setWorkoutHidden(false)
+        }}
+      />
+    )
+  }
+  const activeId = state.active?.id
+  if (activeId !== undefined && !workoutHidden) {
+    return <WorkoutView sessionLogId={activeId} onFinished={setSummary} onBack={() => setWorkoutHidden(true)} />
+  }
+  const resume = activeId !== undefined ? () => setWorkoutHidden(false) : undefined
 
   return (
     <>
-      {tab === 'plan' && <PlanView />}
+      {tab === 'plan' && <PlanView onResumeWorkout={resume} />}
       {tab === 'body' && <BodyView />}
       {tab === 'settings' && <SettingsView />}
       <nav className="tabbar" aria-label="Bereiche">

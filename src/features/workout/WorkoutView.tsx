@@ -23,9 +23,11 @@ const EFFORT_CHOICES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 interface WorkoutViewProps {
   sessionLogId: number
   onFinished: (events: ProgressionEventRecord[]) => void
+  /** Leaves the view without ending the workout. */
+  onBack: () => void
 }
 
-export function WorkoutView({ sessionLogId, onFinished }: WorkoutViewProps) {
+export function WorkoutView({ sessionLogId, onFinished, onBack }: WorkoutViewProps) {
   useWakeLock()
 
   const data = useLiveQuery(async () => {
@@ -88,6 +90,9 @@ export function WorkoutView({ sessionLogId, onFinished }: WorkoutViewProps) {
   return (
     <main className="screen workout">
       <header className="screen-head">
+        <button type="button" className="button-small button-back" onClick={onBack}>
+          ‹ Zurück
+        </button>
         <h1>{TEMPLATE_NAMES[template.id]}</h1>
         <p>
           {doneRows} von {plan.totalRows} Sätzen erledigt
