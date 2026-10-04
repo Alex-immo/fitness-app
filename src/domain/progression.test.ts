@@ -5,6 +5,7 @@ import {
   evaluateSession,
   initialProgressionState,
   rebaseToLoad,
+  reconcileWithLoadSteps,
   setsFor,
   tempoApplies,
   type LoggedSet,
@@ -422,5 +423,64 @@ describe('equipment limit', () => {
         completed('biceps_curl'),
       ]),
     ).toBe(false)
+  })
+})
+
+describe('changed plate set', () => {
+  const HEAVIER = computeLoadSteps(
+    {
+      barWeightKg: 2.3,
+      dumbbellCount: 2,
+      plates: [
+        { weightKg: 5, count: 4 },
+        { weightKg: 2, count: 4 },
+        { weightKg: 1.25, count: 4 },
+        { weightKg: 1, count: 8 },
+      ],
+      maxPlatesPerSide: 4,
+    },
+    2,
+  )
+  const FEWER = computeLoadSteps(
+    { barWeightKg: 2.3, dumbbellCount: 2, plates: [{ weightKg: 2, count: 4 }], maxPlatesPerSide: 4 },
+    2,
+  )
+  const reconcile = (state: ProgressionState, steps: LoadStep[]) => reconcileWithLoadSteps(state, steps, '2030-02-01')
+
+  it('leaves a state alone that still fits', () => {
+    const state = start(6.3)
+    expect(reconcile(state, STEPS)).toEqual({ state, event: null })
+  })
+
+  it('makes load the variable again when heavier plates raise the cap', () => {
+    const { state, event } = reconcile(start(12.8), HEAVIER)
+    expect(state).toMatchObject({ currentLoadKg: 12.8, currentStage: 1 })
+    expect(event).toMatchObject({ reason: 'equipment_changed', fromStage: 2, toStage: 1 })
+  })
+
+  it('returns from tempo, extra set or variant to stage 1 when the cap rises', () => {
+    const stage3 = runUntilEvent(start(12.8), [15, 15, 15]).state
+    const stage4 = runUntilEvent(stage3, [15, 15, 15]).state
+    const stage5 = runUntilEvent(stage4, [15, 15, 15, 15]).state
+    const done = runUntilEvent(stage5, [15, 15, 15, 15]).state
+    expect(reconcile(done, HEAVIER).state).toMatchObject({ currentStage: 1, stage5Completed: false, currentLoadKg: 12.8 })
+    expect(setsFor(reconcile(stage4, HEAVIER).state, BASE.sets)).toBe(3)
+  })
+
+  it('moves a load that can no longer be set to the next lighter step', () => {
+    const { state, event } = reconcile(start(8.8), FEWER)
+    // Only the bar (2.3) and bar plus 2 kg per side (6.3) remain.
+    expect(state).toMatchObject({ currentLoadKg: 6.3, currentStage: 2 })
+    expect(event).toMatchObject({ reason: 'equipment_changed', fromLoadKg: 8.8, toLoadKg: 6.3 })
+  })
+
+  it('keeps a higher stage when the load is still the cap', () => {
+    const stage3 = runUntilEvent(start(12.8), [15, 15, 15]).state
+    expect(reconcile(stage3, STEPS)).toEqual({ state: stage3, event: null })
+  })
+
+  it('ignores exercises without a dumbbell', () => {
+    const state = start(null, null)
+    expect(reconcile(state, HEAVIER)).toEqual({ state, event: null })
   })
 })

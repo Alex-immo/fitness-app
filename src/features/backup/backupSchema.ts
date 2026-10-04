@@ -5,7 +5,7 @@ import { z } from 'zod'
 // of the app (with fields that no longer exist) still load.
 
 /** Version of the file format. Raise it when the shape below changes incompatibly. */
-export const BACKUP_FORMAT_VERSION = 1
+export const BACKUP_FORMAT_VERSION = 2
 export const BACKUP_APP_ID = 'fitness-app'
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -127,6 +127,8 @@ const progressionEvent = z.object({
     'stage_decrease_after_missed_floor',
     'manual_load_change',
     'pullup_level_changed',
+    // Since format version 2.
+    'equipment_changed',
   ]),
 })
 

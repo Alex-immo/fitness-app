@@ -14,6 +14,7 @@ Stand: 4. Oktober 2026
 - Schritt 7: Verlauf je Übung (Stand, letzte Einheiten, Änderungen), Deload-Vorschlag und Deload-Woche, Kürzungsregel für die Langversionen
 - Einstellungen: Versionsanzeige mit Aktualisieren-Knopf; Zurück im laufenden Workout
 - Schritt 8: Backup-Export (Teilen-Menü, sonst Download-Link) und -Import (Zod-Prüfung, Rückfrage, alles oder nichts), wöchentliche Erinnerung im Wochenplan
+- Einstellungen für Profil (Größe, Geburtsjahr, Geschlecht) und Kurzhanteln (Stange, Scheiben, Scheiben pro Seite) mit Abgleich der Progressionsstände
 
 ## Entscheidungen (4. Oktober 2026)
 
@@ -23,7 +24,6 @@ Stand: 4. Oktober 2026
 - Übrige Annahmen aus der Fragenliste gelten wie vorgeschlagen
 - Rotation folgt den erledigten Langversionen; nie gestartete Einheiten vergangener Wochen gelten als ausgefallen
 - Kalorienregel: fällig zwei volle Wochen nach dem ersten Wiegen bzw. der letzten Auswertung; verglichen werden die beiden abgeschlossenen Wochen davor; jede Auswertung wird protokolliert, auch ohne Änderung
-- Profil und Equipment sind nach dem Onboarding noch nicht änderbar (Einstellungen fehlen, stehen in keinem Bauschritt)
 - Einstiegsphase: Klimmzug-Aufstieg in B Einstieg bei 3 von 3 Sätzen; Trainingswoche = Kalenderwoche mit mindestens einer erledigten Einstiegs-Einheit seit dem letzten Wechsel; Dauer von Starten bis Beenden; geschätzte Dauer 40 Min
 - Veröffentlicht unter https://alex-immo.github.io/fitness-app/ (Push auf main veröffentlicht automatisch)
 
@@ -33,8 +33,7 @@ Stand: 4. Oktober 2026
 
 ## Noch nicht gebaut
 
-- Einstellungen für Profil und Equipment (in keinem Bauschritt)
 
 ## Nächster Schritt
 
-Schritt 9 ist technisch erledigt (App ist veröffentlicht). Offen: Test auf dem iPhone, danach Einstellungen für Profil und Equipment.
+Schritt 9 ist technisch erledigt (App ist veröffentlicht). Offen: Test auf dem iPhone. Nice-to-have aus der Spezifikation: Umfangsmessungen, Anzeige der Equipment-Grenze.

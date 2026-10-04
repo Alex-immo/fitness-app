@@ -57,6 +57,7 @@ export type ProgressionReason =
   | 'stage_decrease_after_missed_floor'
   | 'manual_load_change'
   | 'pullup_level_changed'
+  | 'equipment_changed'
 
 export interface ProgressionEvent {
   userId: string

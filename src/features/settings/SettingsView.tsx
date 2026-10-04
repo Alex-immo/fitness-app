@@ -8,6 +8,10 @@ import { useLiveQuery } from '../../shared/useLiveQuery'
 import { BackupSection } from '../backup/BackupSection'
 import { getUser } from '../body/bodyStore'
 import { setPlanPhase, setShortenLong } from '../plan/planStore'
+import { getActiveSessionLog } from '../workout/workoutStore'
+import { EquipmentSection } from './EquipmentSection'
+import { ProfileSection } from './ProfileSection'
+import { DUMBBELL_ID } from './settingsStore'
 
 const PHASES: { id: PlanPhase; label: string; detail: string }[] = [
   { id: 'einstieg', label: 'Einstieg', detail: '7 Übungen, 17 Sätze je Einheit' },
@@ -15,8 +19,16 @@ const PHASES: { id: PlanPhase; label: string; detail: string }[] = [
 ]
 
 export function SettingsView() {
-  const user = useLiveQuery(async () => (await getUser(db)) ?? null, [])
-  if (!user) return null
+  const data = useLiveQuery(
+    async () => ({
+      user: (await getUser(db)) ?? null,
+      dumbbell: (await db.equipment.get(DUMBBELL_ID)) ?? null,
+      workoutRunning: (await getActiveSessionLog(db)) !== undefined,
+    }),
+    [],
+  )
+  if (!data?.user) return null
+  const { user, dumbbell, workoutRunning } = data
   const phase = user.planPhase ?? 'einstieg'
   const shortened = user.shortenLong === true
 
@@ -65,6 +77,8 @@ export function SettingsView() {
           ))}
         </div>
       </section>
+      <ProfileSection user={user} />
+      {dumbbell && <EquipmentSection dumbbell={dumbbell} workoutRunning={workoutRunning} />}
       <BackupSection />
       <AppVersion />
     </main>

@@ -61,7 +61,9 @@ Bei Übungen mit nur einer Hantel dürfen die Scheiben beider Hanteln auf eine S
 
 Deckel: 15,3 kg für Ein-Hantel-Übungen, 12,8 kg je Hantel (25,6 kg zusammen) für Zwei-Hantel-Übungen.
 
-Stangengewicht, Scheibensatz und `max_plates_per_side` sind in der App editierbar (Einstellungen), damit ein späterer Zukauf keinen Code-Eingriff braucht.
+Stangengewicht, Scheibensatz und `max_plates_per_side` sind in der App editierbar (Einstellungen), damit ein späterer Zukauf keinen Code-Eingriff braucht. Nach einer Änderung gleicht die App jeden Progressionsstand an die neuen Laststufen an und protokolliert das: Eine Last, die sich nicht mehr einstellen lässt, geht auf die nächstleichtere Stufe. Liegt der neue Deckel über der aktuellen Last, ist die Last wieder die Variable, und die Übung geht zurück auf Stufe 1. Während eines laufenden Workouts ist das Equipment gesperrt.
+
+Größe, Geburtsjahr und Geschlecht sind ebenfalls in den Einstellungen änderbar. Das Kalorienziel verschiebt sich dabei um die Differenz, die die Startformel für die neuen Werte ergibt; die bisherigen Anpassungen aus dem Regelkreis bleiben erhalten.
 
 ## 3. Scheduling-Logik
 

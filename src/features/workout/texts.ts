@@ -56,6 +56,8 @@ export function eventText(event: ProgressionEventRecord): string {
       return `Untergrenze zweimal verfehlt: zurück auf Stufe ${event.toStage}`
     case 'manual_load_change':
       return `Last von Hand geändert: ${kg(event.fromLoadKg)} → ${kg(event.toLoadKg)}`
+    case 'equipment_changed':
+      return `Equipment geändert: jetzt Stufe ${event.toStage} bei ${kg(event.toLoadKg)}`
     case 'pullup_level_changed':
       return 'Neues Klimmzug-Schema ab der nächsten Einheit'
   }

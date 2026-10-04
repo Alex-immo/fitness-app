@@ -227,6 +227,30 @@ export function rebaseToLoad(input: {
 }
 
 /**
+ * Brings a state in line with a changed plate set. A load that can no longer
+ * be set moves to the next lighter step (or the lightest one). If the cap rose
+ * above the current load, load is the variable again: the exercise returns to
+ * stage 1, whatever stage it had reached at the old cap.
+ */
+export function reconcileWithLoadSteps(state: ProgressionState, loadSteps: LoadStep[], date: IsoDate): SessionOutcome {
+  if (state.currentLoadKg === null) return { state, event: null }
+  const current = state.currentLoadKg
+  const lighterOrEqual = loadSteps.filter((step) => step.loadKg <= current)
+  const load = (lighterOrEqual[lighterOrEqual.length - 1] ?? loadSteps[0])?.loadKg
+  if (load === undefined) throw new Error('No load steps available')
+
+  const belowCap = load < capLoadKg(loadSteps)
+  const stage: Stage = belowCap ? 1 : state.currentStage === 1 ? 2 : state.currentStage
+  if (load === current && stage === state.currentStage) return { state, event: null }
+  return change(
+    { ...state, updatedAt: date },
+    { currentStage: stage, currentLoadKg: load, stage5Completed: belowCap ? false : state.stage5Completed },
+    'equipment_changed',
+    date,
+  )
+}
+
+/**
  * Sets to do in a session: the template's count, plus the one extra set from
  * stage 4 on. The state stores no set count, so the same state works with
  * templates that dose the exercise differently.
