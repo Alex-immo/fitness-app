@@ -78,7 +78,7 @@ Regeln:
 
 1. Drei Krafteinheiten pro Woche, Standard-Slots Montag, Mittwoch, Freitag.
 2. Mindestens ein Tag Pause zwischen zwei Krafteinheiten.
-3. Die Langversionen rotieren A → B → A → B. Die Rotation zählt nur Langversionen; ein Kurz- oder Reisezirkel verschiebt sie nicht.
+3. Die Langversionen rotieren A → B → A → B. Die Rotation zählt nur Langversionen; ein Kurz- oder Reisezirkel verschiebt sie nicht. Maßgeblich sind die tatsächlich erledigten Langversionen: Fällt eine geplante Langversion aus, rückt sie auf die nächste Langversion.
 4. Fällt ein Homeoffice-Tag weg, ersetzt der Kurzzirkel die Einheit. Sie wird nicht gestrichen und nicht nachgeholt.
 5. An Reisetagen ersetzt der Reisezirkel die Einheit, ebenfalls ohne Nachholen.
 6. Zone-2-Bike nie am selben Morgen wie Krafttraining. Ausnahme: 6 Min lockeres Kurbeln als Warm-up.

@@ -73,3 +73,32 @@ export function planWeek(input: WeekPlanInput): WeekPlanResult {
 
   return { sessions, lastLong }
 }
+
+export interface RotationEntry {
+  templateId: TemplateId
+  /** Only "geplant" and "erledigt" take part; dropped or replaced sessions are skipped. */
+  status: 'geplant' | 'erledigt' | 'ersetzt' | 'ausgefallen'
+}
+
+const isLong = (templateId: TemplateId): templateId is LongTemplateId =>
+  templateId === 'A_lang' || templateId === 'B_lang'
+
+/**
+ * Assigns A or B to every planned long session. The rotation follows the long
+ * versions actually completed: a long session that was dropped does not count,
+ * so the next one takes its place. `sessions` must be in date order from the
+ * very first session on; the result has the same order.
+ */
+export function assignRotation(sessions: readonly RotationEntry[]): TemplateId[] {
+  let lastLong: LongTemplateId | null = null
+  return sessions.map((session) => {
+    if (!isLong(session.templateId)) return session.templateId
+    if (session.status === 'erledigt') {
+      lastLong = session.templateId
+      return session.templateId
+    }
+    if (session.status !== 'geplant') return session.templateId
+    lastLong = nextLongTemplate(lastLong)
+    return lastLong
+  })
+}

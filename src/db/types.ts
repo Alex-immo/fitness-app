@@ -85,6 +85,8 @@ export interface WeekPlan {
   userId: string
   weekStart: IsoDate
   weekType: WeekType
+  /** Extension: the weekly input, one day type for Monday to Sunday. Missing until the week is planned. */
+  dayTypes?: DayType[]
 }
 
 export type SessionStatus = 'geplant' | 'erledigt' | 'ersetzt' | 'ausgefallen'

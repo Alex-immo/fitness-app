@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addDays, weekStartOf, weekdayIndex } from './dates'
-import { nextLongTemplate, planWeek } from './schedule'
+import { assignRotation, nextLongTemplate, planWeek, type RotationEntry } from './schedule'
 import type { DayType } from './types'
 
 const MONDAY = '2030-01-07'
@@ -96,5 +96,44 @@ describe('week planning', () => {
     const days = week('homeoffice', 'buero', 'homeoffice', 'buero', 'homeoffice')
     expect(() => planWeek({ weekStart: '2030-01-08', dayTypes: days, lastLong: null })).toThrow()
     expect(() => planWeek({ weekStart: MONDAY, dayTypes: days.slice(0, 5), lastLong: null })).toThrow()
+  })
+})
+
+describe('rotation over planned and completed sessions', () => {
+  const entry = (templateId: RotationEntry['templateId'], status: RotationEntry['status']): RotationEntry => ({
+    templateId,
+    status,
+  })
+
+  it('continues after the last completed long version', () => {
+    expect(
+      assignRotation([entry('A_lang', 'erledigt'), entry('A_lang', 'geplant'), entry('A_lang', 'geplant')]),
+    ).toEqual(['A_lang', 'B_lang', 'A_lang'])
+  })
+
+  it('does not count a dropped long version: the next one takes its place', () => {
+    expect(
+      assignRotation([entry('A_lang', 'erledigt'), entry('B_lang', 'ausgefallen'), entry('A_lang', 'geplant')]),
+    ).toEqual(['A_lang', 'B_lang', 'B_lang'])
+  })
+
+  it('is not moved by circuits or bike sessions', () => {
+    expect(
+      assignRotation([
+        entry('A_lang', 'erledigt'),
+        entry('kurzzirkel', 'erledigt'),
+        entry('bike_z2', 'geplant'),
+        entry('reisezirkel', 'geplant'),
+        entry('A_lang', 'geplant'),
+      ]),
+    ).toEqual(['A_lang', 'kurzzirkel', 'bike_z2', 'reisezirkel', 'B_lang'])
+  })
+
+  it('never rewrites completed sessions and starts with A', () => {
+    expect(assignRotation([entry('B_lang', 'geplant'), entry('B_lang', 'erledigt'), entry('B_lang', 'geplant')])).toEqual([
+      'A_lang',
+      'B_lang',
+      'A_lang',
+    ])
   })
 })

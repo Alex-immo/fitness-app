@@ -358,3 +358,87 @@ select:disabled {
 .rest-timer button {
   padding: 0 14px;
 }
+
+/* Week plan */
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.day-row {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-name {
+  font-weight: 600;
+}
+
+.day-options {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 4px;
+}
+
+.day-options .chip {
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.session-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.session-day {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.status {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.status-erledigt {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.button-secondary {
+  width: 100%;
+  font-weight: 600;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.92rem;
+}
+
+.field input {
+  font: inherit;
+  color: inherit;
+  min-height: var(--tap);
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-sunken);
+}

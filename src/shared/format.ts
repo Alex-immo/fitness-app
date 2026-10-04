@@ -21,3 +21,12 @@ export function formatClock(totalSeconds: number): string {
   const seconds = Math.max(0, Math.ceil(totalSeconds))
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
+
+const WEEKDAYS_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+
+export const weekdayShort = (index: number): string => WEEKDAYS_SHORT[index] ?? ''
+
+/** Day and month of an ISO date, e.g. "07.01.". */
+export function formatDayMonth(date: string): string {
+  return `${date.slice(8, 10)}.${date.slice(5, 7)}.`
+}

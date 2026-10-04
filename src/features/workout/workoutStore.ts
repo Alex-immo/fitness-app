@@ -1,16 +1,17 @@
 import type { FitnessDatabase } from '../../db/database'
+import { LOCAL_USER_ID } from '../../db/localUser'
 import type { ProgressionEventRecord, ProgressionStateRecord, SessionLog, SetLog } from '../../db/types'
 import { toIsoDate, toLocalTimestamp, weekStartOf } from '../../domain/dates'
 import { evaluateSession, initialProgressionState, rebaseToLoad, type LoggedSet } from '../../domain/progression'
 import { evaluatePullupSession, pullupLevelFromTest, pullupScheme } from '../../domain/pullup'
 import type { DayType, Side, TemplateId } from '../../domain/types'
+import { rotateOpenSessions } from '../plan/planStore'
 import { dumbbellSetupOf, loadStepsFor, PULLUP_ID, TEST_SET_NUMBER } from './workoutModel'
 
 // Database operations of the workout view. Every action is written at once so
 // a running workout survives switching apps and reloading.
 
-/** Single local user; onboarding (build step 6) creates the profile under this id. */
-export const LOCAL_USER_ID = 'local'
+export { LOCAL_USER_ID }
 
 const DAY_TYPE_BY_TEMPLATE: Record<TemplateId, DayType> = {
   A_lang: 'homeoffice',
@@ -41,6 +42,20 @@ export async function startWorkout(db: FitnessDatabase, templateId: TemplateId, 
       dayType: DAY_TYPE_BY_TEMPLATE[templateId],
       status: 'geplant',
     })
+    return startScheduledSession(db, scheduledSessionId, now)
+  })
+}
+
+/** Starts the workout of a planned session. The session moves to the day it is actually done. */
+export async function startScheduledSession(
+  db: FitnessDatabase,
+  scheduledSessionId: number,
+  now: Date,
+): Promise<number> {
+  return db.transaction('rw', db.scheduledSessions, db.sessionLogs, async () => {
+    const active = await getActiveSessionLog(db)
+    if (active?.id !== undefined) return active.id
+    await db.scheduledSessions.update(scheduledSessionId, { date: toIsoDate(now) })
     return db.sessionLogs.add({
       scheduledSessionId,
       startedAt: toLocalTimestamp(now),
@@ -238,6 +253,7 @@ export async function finishWorkout(
         delete log.draft
       })
       await db.scheduledSessions.update(scheduled.id!, { status: 'erledigt' })
+      await rotateOpenSessions(db)
       return events
     },
   )
