@@ -4,6 +4,7 @@ import type { ProgressionEventRecord } from './db/types'
 import { BodyView } from './features/body/BodyView'
 import { getUser } from './features/body/bodyStore'
 import { Onboarding } from './features/body/Onboarding'
+import { HistoryView } from './features/history/HistoryView'
 import { PlanView } from './features/plan/PlanView'
 import { SettingsView } from './features/settings/SettingsView'
 import { eventText } from './features/workout/texts'
@@ -11,11 +12,12 @@ import { WorkoutView } from './features/workout/WorkoutView'
 import { getActiveSessionLog } from './features/workout/workoutStore'
 import { useLiveQuery } from './shared/useLiveQuery'
 
-type Tab = 'plan' | 'body' | 'settings'
+type Tab = 'plan' | 'body' | 'history' | 'settings'
 const TABS: { id: Tab; label: string }[] = [
   { id: 'plan', label: 'Plan' },
   { id: 'body', label: 'Körper' },
-  { id: 'settings', label: 'Einstellungen' },
+  { id: 'history', label: 'Verlauf' },
+  { id: 'settings', label: 'Mehr' },
 ]
 
 export function App() {
@@ -51,6 +53,7 @@ export function App() {
     <>
       {tab === 'plan' && <PlanView onResumeWorkout={resume} />}
       {tab === 'body' && <BodyView />}
+      {tab === 'history' && <HistoryView />}
       {tab === 'settings' && <SettingsView />}
       <nav className="tabbar" aria-label="Bereiche">
         {TABS.map(({ id, label }) => (

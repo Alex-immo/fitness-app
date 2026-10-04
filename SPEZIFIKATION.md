@@ -162,7 +162,7 @@ RIR = Wiederholungen, die im Satz bis zum Muskelversagen noch möglich gewesen w
 | 8 | `calf_raise_single_leg` | 2 | 15–20 je Bein | 30 s | |
 | 9 | `dead_bug` | 2 | 10 je Seite | 30 s | |
 
-Kürzungsregel: Überschreitet die gemessene Dauer einer Langversion zweimal in Folge 55 Min, schlägt die App vor, Übung 7 zu streichen. Die Regel gilt nur für A lang und B lang, nicht für die Einstiegsvorlagen.
+Kürzungsregel: Überschreitet die gemessene Dauer einer Langversion zweimal in Folge 55 Min, schlägt die App vor, Übung 7 zu streichen. Die Regel gilt nur für A lang und B lang, nicht für die Einstiegsvorlagen. Gemeint sind die letzten zwei erledigten Langversionen, gleich ob A oder B. Der Nutzer nimmt an (Übung 7 entfällt in A lang und B lang) oder lehnt ab; nach einer Ablehnung zählen nur spätere Einheiten. Die Kürzung lässt sich in den Einstellungen jederzeit zurücknehmen.
 
 ### 5.3a Einstiegsphase (A Einstieg, B Einstieg)
 
@@ -268,6 +268,11 @@ Für die übrigen Übungen zeigt die App bei Erreichen von Stufe 5 nur den Hinwe
 
 Nach sieben Trainingswochen schlägt die App eine Deload-Woche vor: halbe Satzzahl (aufgerundet) bei gleicher Last und gleichen Wiederholungen. Die Woche ist ein eigener Wochentyp und zählt nicht für Trigger. Die Zählung der Trainingswochen läuft über beide Planvarianten durch.
 
+- Eine Trainingswoche ist eine Kalenderwoche mit mindestens einer erledigten Krafteinheit (A, B oder Zirkel). Nach einer Deload-Woche beginnt die Zählung neu.
+- Der Vorschlag gilt für die laufende Woche. Der Nutzer nimmt ihn an oder lehnt für diese Woche ab; dann kommt er in der Folgewoche wieder. Jede Woche lässt sich auch von Hand zur Deload-Woche machen und zurück.
+- In der Deload-Woche gelten Last, Wiederholungsbereich und Tempo des aktuellen Stands; RIR und Klimmzug-Einstufungstest entfallen. Zirkel haben die halbe Rundenzahl.
+- Einheiten einer Deload-Woche zählen nicht für die Dauerprüfungen (Kürzungsregel, Wechselvorschlag).
+
 ### Equipment-Grenze
 
 Haben drei der vier Hauptübungen (`front_squat_db`, `bulgarian_split_squat`, `row_one_arm`, `floor_press`) Stufe 5 abgeschlossen, meldet die App den Upgrade-Bedarf (schwerere Scheiben oder Hanteln). Sie schlägt dann keine weiteren Varianten vor.
@@ -340,7 +345,8 @@ User
   id, height_cm, birth_year, sex, goal,
   kcal_target, protein_target_g, gain_target_pct_per_week,
   plan_phase ("einstieg" | "voll"), plan_phase_since,
-  phase_suggestion_snoozed_until
+  phase_suggestion_snoozed_until,
+  shorten_long (bool), shortening_declined_on, deload_declined_week
 
 Equipment
   id (slug), name_de, count, bar_weight_kg (null = ohne Last),

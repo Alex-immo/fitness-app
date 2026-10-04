@@ -1,7 +1,9 @@
 import type { Equipment, Exercise, ProgressionStateRecord, SetLog, TemplateItem, WorkoutTemplate } from '../../db/types'
+import { deloadSets } from '../../domain/deload'
 import { capLoadKg, computeLoadSteps, isSelectableLoad, type DumbbellSetup, type LoadStep } from '../../domain/loads'
 import { setsFor, tempoApplies } from '../../domain/progression'
 import { pullupLevelFromTest, pullupScheme, type PullupLevel } from '../../domain/pullup'
+import { SHORTENED_ITEM_ORDER, shorteningApplies } from '../../domain/shortening'
 
 // Turns a template plus the current progression states into what the workout
 // view shows: per exercise the target, and the sets in the order they are done.
@@ -89,6 +91,16 @@ export interface PlanInput {
   setLogs: SetLog[]
   /** Loads the user picked in this session. */
   loadByExercise: Record<string, number>
+  /** Deload week: half the sets at the same load and reps, nothing counts for triggers. */
+  deload: boolean
+  /** The user accepted the shortening rule: exercise 7 of the long versions is dropped. */
+  shortenLong: boolean
+}
+
+/** Items of a template as they are trained, i.e. without exercise 7 if the long version is shortened. */
+export function activeItems(template: WorkoutTemplate, items: TemplateItem[], shortenLong: boolean): TemplateItem[] {
+  const dropSeventh = shortenLong && shorteningApplies(template.id)
+  return items.filter((item) => !(dropSeventh && item.order === SHORTENED_ITEM_ORDER)).sort((a, b) => a.order - b.order)
 }
 
 export function buildWorkoutPlan(input: PlanInput): WorkoutPlan {
@@ -96,7 +108,9 @@ export function buildWorkoutPlan(input: PlanInput): WorkoutPlan {
   const exerciseById = new Map(input.exercises.map((exercise) => [exercise.id, exercise]))
   const stateByExercise = new Map(input.states.map((state) => [state.exerciseId, state]))
   const setup = dumbbellSetupOf(input.dumbbell)
-  const items = [...input.items].sort((a, b) => a.order - b.order)
+  const items = activeItems(template, input.items, input.shortenLong)
+  // A deload week keeps load, reps and tempo of the state but triggers nothing.
+  const counts = template.countsForProgression && !input.deload
 
   const targets = new Map<string, ExerciseTarget>()
   for (const item of items) {
@@ -142,7 +156,7 @@ export function buildWorkoutPlan(input: PlanInput): WorkoutPlan {
       const storedLevel = state?.pullupLevel && !state.pullupRetestDue ? state.pullupLevel : null
       const level = testLog ? pullupLevelFromTest(testLog.repsDone!) : storedLevel
       const scheme = level ? pullupScheme(level) : null
-      target.needsPullupTest = storedLevel === null
+      target.needsPullupTest = storedLevel === null && !input.deload
       target.pullupLevel = level
       target.sets = item.sets
       // "As many clean reps as possible": 5 per set is the goal that moves on.
@@ -151,6 +165,7 @@ export function buildWorkoutPlan(input: PlanInput): WorkoutPlan {
       target.tempo = false
       target.variantText = null
     }
+    if (input.deload) target.sets = deloadSets(target.sets)
     targets.set(item.id, target)
   }
 
@@ -160,13 +175,14 @@ export function buildWorkoutPlan(input: PlanInput): WorkoutPlan {
     exerciseId: target.exercise.id,
     setNumber,
     isTest: setNumber === TEST_SET_NUMBER,
-    rirRequired: template.countsForProgression && setNumber === target.sets,
+    rirRequired: counts && setNumber === target.sets,
     restSeconds,
   })
 
   const groups: PlanGroup[] = []
   if (template.type === 'circuit') {
-    const rounds = Math.max(0, ...items.map((item) => item.sets))
+    const roundsOf = (item: TemplateItem) => targets.get(item.id)!.sets
+    const rounds = Math.max(0, ...items.map(roundsOf))
     for (let round = 1; round <= rounds; round++) {
       groups.push({
         key: `round-${round}`,
@@ -174,7 +190,7 @@ export function buildWorkoutPlan(input: PlanInput): WorkoutPlan {
         itemId: null,
         round,
         rows: items
-          .filter((item) => item.sets >= round)
+          .filter((item) => roundsOf(item) >= round)
           .map((item) => row(targets.get(item.id)!, round, round < rounds ? item.restSeconds : 0)),
       })
     }

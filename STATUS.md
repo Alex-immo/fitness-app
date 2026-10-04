@@ -11,6 +11,8 @@ Stand: 4. Oktober 2026
 - Schritt 5: Wochenplanung nach Tagtyp (diese und nächste Woche), A/B-Rotation nach erledigten Langversionen, Einheit ausfallen lassen und wieder einplanen, Bike-Einheit von Hand eintragen
 - Schritt 6: Onboarding (Profil), Gewichtslog mit Wochenmitteln und Trend, Kalorienregel alle zwei Wochen, Protein als Tagessumme, Tab-Leiste Plan/Körper
 - Einstiegsphase: Vorlagen A/B Einstieg, Einstellung Planvariante (Einstieg/Voll), Satzzahl aus Vorlage plus Zusatzsatz, Wechselvorschlag, Datenbank-Version 3
+- Schritt 7: Verlauf je Übung (Stand, letzte Einheiten, Änderungen), Deload-Vorschlag und Deload-Woche, Kürzungsregel für die Langversionen
+- Einstellungen: Versionsanzeige mit Aktualisieren-Knopf; Zurück im laufenden Workout
 
 ## Entscheidungen (4. Oktober 2026)
 
@@ -26,14 +28,13 @@ Stand: 4. Oktober 2026
 
 ## Offen
 
-- Schritt 7 muss beachten: Kürzungsregel nur für A lang/B lang, Deload-Zählung über beide Planvarianten
-- Wochentyp ist bis Schritt 7 immer "normal"
 - Noch kein Backup: Daten liegen nur auf dem Gerät (Schritt 8)
 
 ## Noch nicht gebaut
 
-- Historie und Deload (Schritt 7), Backup (Schritt 8)
+- Backup (Schritt 8)
+- Einstellungen für Profil und Equipment (in keinem Bauschritt)
 
 ## Nächster Schritt
 
-Schritt 7: Historie und Deload
+Schritt 8: Backup-Export und -Import

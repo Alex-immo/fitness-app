@@ -176,6 +176,7 @@ export async function finishWorkout(
     'rw',
     [
       db.users,
+      db.weekPlans,
       db.sessionLogs,
       db.setLogs,
       db.scheduledSessions,
@@ -197,7 +198,9 @@ export async function finishWorkout(
       const date = toIsoDate(now)
       const events: ProgressionEventRecord[] = []
 
-      if (template.countsForProgression) {
+      // A deload week is logged but never changes a progression state.
+      const weekPlan = await db.weekPlans.get(scheduled.weekPlanId)
+      if (template.countsForProgression && weekPlan?.weekType !== 'deload') {
         const items = await db.templateItems.where('templateId').equals(template.id).sortBy('order')
         const setup = dumbbellSetupOf(await db.equipment.get('dumbbell'))
         const setLogs = await db.setLogs.where('sessionLogId').equals(sessionLogId).toArray()

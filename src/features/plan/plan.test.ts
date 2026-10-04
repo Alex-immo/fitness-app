@@ -7,7 +7,10 @@ import { LOCAL_USER_ID } from '../../db/localUser'
 import { addDays } from '../../domain/dates'
 import {
   closePastWeeks,
+  declineDeload,
+  declineShortening,
   DEFAULT_DAY_TYPES,
+  deloadSuggested,
   getWeek,
   logBikeSession,
   fullPlanSuggested,
@@ -15,6 +18,9 @@ import {
   saveWeekPlan,
   setPlanPhase,
   setSessionDropped,
+  setShortenLong,
+  setWeekType,
+  shorteningSuggested,
   snoozePhaseSuggestion,
   suggestedDayTypes,
 } from './planStore'
@@ -284,5 +290,94 @@ describe('suggestion to switch to the full plan', () => {
     await setPlanPhase(db, 'voll', TODAY)
     await setPlanPhase(db, 'einstieg', '2030-02-04')
     expect(await fullPlanSuggested(db, '2030-02-04')).toBe(false)
+  })
+})
+
+/** Completes the first session of consecutive weeks from WEEK_1 with the given durations in minutes. */
+async function trainMondays(durationsMin: number[], firstWeekIndex = 0) {
+  for (const [offset, durationMin] of durationsMin.entries()) {
+    const index = firstWeekIndex + offset
+    const weekStart = addDays(WEEK_1, index * 7)
+    await saveWeekPlan(db, weekStart, ['homeoffice', 'buero', 'buero', 'buero', 'buero', 'wochenende', 'wochenende'])
+    const session = (await getWeek(db, weekStart))!.sessions[0]!
+    const startedAt = new Date(2030, 0, 7 + index * 7, 6, 0)
+    const logId = await startScheduledSession(db, session.id!, startedAt)
+    await finishWorkout(db, logId, null, new Date(startedAt.getTime() + durationMin * 60_000))
+  }
+}
+const mondayOfWeek = (index: number) => addDays(WEEK_1, index * 7)
+
+describe('deload suggestion', () => {
+  it('comes after seven training weeks and not before', async () => {
+    await trainMondays([40, 40, 40, 40, 40, 40])
+    expect(await deloadSuggested(db, mondayOfWeek(6))).toBe(false)
+    await trainMondays([40], 6)
+    expect(await deloadSuggested(db, mondayOfWeek(7))).toBe(true)
+  })
+
+  it('counts across both plan variants', async () => {
+    await db.users.put({ ...TEST_USER, planPhase: 'einstieg' })
+    await trainMondays([40, 40, 40])
+    await setPlanPhase(db, 'voll', mondayOfWeek(3))
+    await trainMondays([40, 40, 40, 40], 3)
+    const templates = (await db.scheduledSessions.toArray())
+      .filter((s) => s.status === 'erledigt')
+      .map((s) => s.templateId)
+    expect(new Set(templates)).toEqual(new Set(['A_einstieg', 'B_einstieg', 'A_lang', 'B_lang']))
+    expect(await deloadSuggested(db, mondayOfWeek(7))).toBe(true)
+  })
+
+  it('ends when the week becomes a deload week, and the count starts again', async () => {
+    await trainMondays([40, 40, 40, 40, 40, 40, 40])
+    await setWeekType(db, mondayOfWeek(7), 'deload')
+    expect(await deloadSuggested(db, mondayOfWeek(7))).toBe(false)
+    expect((await getWeek(db, mondayOfWeek(7)))?.plan.weekType).toBe('deload')
+    expect(await deloadSuggested(db, mondayOfWeek(8))).toBe(false)
+  })
+
+  it('can be declined for this week and comes back the next', async () => {
+    await trainMondays([40, 40, 40, 40, 40, 40, 40])
+    await declineDeload(db, mondayOfWeek(7))
+    expect(await deloadSuggested(db, addDays(mondayOfWeek(7), 3))).toBe(false)
+    expect(await deloadSuggested(db, mondayOfWeek(8))).toBe(true)
+  })
+
+  it('keeps a deload week when its day types are planned', async () => {
+    await setWeekType(db, WEEK_1, 'deload')
+    await saveWeekPlan(db, WEEK_1, DEFAULT_DAY_TYPES)
+    expect((await getWeek(db, WEEK_1))?.plan).toMatchObject({ weekType: 'deload', dayTypes: DEFAULT_DAY_TYPES })
+    expect(await db.weekPlans.count()).toBe(1)
+  })
+})
+
+describe('shortening suggestion', () => {
+  it('comes after two long versions in a row above 55 minutes', async () => {
+    await trainMondays([50, 58])
+    expect(await shorteningSuggested(db)).toBe(false)
+    await trainMondays([61], 2)
+    expect(await shorteningSuggested(db)).toBe(true)
+  })
+
+  it('never comes from entry sessions', async () => {
+    await db.users.put({ ...TEST_USER, planPhase: 'einstieg' })
+    await trainMondays([70, 70, 70])
+    expect(await shorteningSuggested(db)).toBe(false)
+  })
+
+  it('ends once accepted and can be declined', async () => {
+    await trainMondays([60, 60])
+    await declineShortening(db, mondayOfWeek(1))
+    expect(await shorteningSuggested(db)).toBe(false)
+    await trainMondays([60, 60], 2)
+    expect(await shorteningSuggested(db)).toBe(true)
+    await setShortenLong(db, true)
+    expect(await shorteningSuggested(db)).toBe(false)
+  })
+
+  it('ignores sessions of a deload week for the duration checks', async () => {
+    await trainMondays([60])
+    await setWeekType(db, mondayOfWeek(1), 'deload')
+    await trainMondays([60], 1)
+    expect(await shorteningSuggested(db)).toBe(false)
   })
 })

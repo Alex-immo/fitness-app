@@ -29,7 +29,10 @@ afterEach(async () => {
   await db.delete()
 })
 
-async function planOf(sessionLogId: number): Promise<WorkoutPlan> {
+async function planOf(
+  sessionLogId: number,
+  options: { deload?: boolean; shortenLong?: boolean } = {},
+): Promise<WorkoutPlan> {
   const sessionLog = (await db.sessionLogs.get(sessionLogId))!
   const scheduled = (await db.scheduledSessions.get(sessionLog.scheduledSessionId))!
   const template = (await db.workoutTemplates.get(scheduled.templateId))!
@@ -41,6 +44,8 @@ async function planOf(sessionLogId: number): Promise<WorkoutPlan> {
     dumbbell: await db.equipment.get('dumbbell'),
     setLogs: await db.setLogs.where('sessionLogId').equals(sessionLogId).toArray(),
     loadByExercise: sessionLog.draft?.loadByExercise ?? {},
+    deload: options.deload ?? false,
+    shortenLong: options.shortenLong ?? false,
   })
 }
 
@@ -417,5 +422,76 @@ describe('entry phase', () => {
     }
     await finishWorkout(db, id, null, NOW)
     expect(await stateOf('pullup')).toMatchObject({ pullupLevel: 'rep_range' })
+  })
+})
+
+describe('deload week', () => {
+  const markDeload = async (sessionLogId: number) => {
+    const log = (await db.sessionLogs.get(sessionLogId))!
+    const scheduled = (await db.scheduledSessions.get(log.scheduledSessionId))!
+    await db.weekPlans.update(scheduled.weekPlanId, { weekType: 'deload' })
+  }
+
+  it('halves the sets, rounded up, and asks for no RIR', async () => {
+    const plan = await planOf(await start('A_lang'), { deload: true })
+    expect(plan.groups.map((group) => group.rows.length)).toEqual([2, 2, 2, 2, 2, 2, 1, 1, 1])
+    expect(plan.groups.flatMap((group) => group.rows).some((row) => row.rirRequired)).toBe(false)
+  })
+
+  it('halves the rounds of a circuit', async () => {
+    const plan = await planOf(await start('kurzzirkel'), { deload: true })
+    expect(plan.groups).toHaveLength(2)
+  })
+
+  it('keeps load, extended rep range and tempo of the state', async () => {
+    const run = async (now: Date) => {
+      const id = await start('A_lang', now)
+      await logExercise(id, 'front_squat_db', 15, 4, now)
+      await finishWorkout(db, id, null, now)
+    }
+    await run(NOW)
+    await run(LATER)
+    const plan = await planOf(await start('A_lang', LATER), { deload: true })
+    const target = [...plan.targets.values()].find((t) => t.exercise.id === 'front_squat_db')
+    // Stage 4: 4 + 1 sets, halved and rounded up.
+    expect(target).toMatchObject({ sets: 3, loadKg: 12.8, tempo: true, repMin: 10, repMax: 15 })
+  })
+
+  it('does not ask for the pull-up placement test', async () => {
+    const plan = await planOf(await start('B_lang'), { deload: true })
+    expect(plan.groups[1]?.rows.map((row) => row.setNumber)).toEqual([1, 2])
+  })
+
+  it('logs the sets but changes no progression state', async () => {
+    const first = await start('A_lang')
+    await setExerciseLoad(db, first, 'lateral_raise', 4.3)
+    await logExercise(first, 'lateral_raise', 15)
+    await finishWorkout(db, first, null, NOW)
+    const before = await stateOf('lateral_raise')
+
+    const second = await start('A_lang', LATER)
+    await markDeload(second)
+    await logExercise(second, 'lateral_raise', 15, 5, LATER)
+    expect(await finishWorkout(db, second, null, LATER)).toEqual([])
+    expect(await stateOf('lateral_raise')).toEqual(before)
+    expect(await db.setLogs.count()).toBe(6)
+  })
+})
+
+describe('shortened long version', () => {
+  it('drops exercise 7 from A lang and B lang', async () => {
+    const planA = await planOf(await start('A_lang'), { shortenLong: true })
+    expect(planA.groups).toHaveLength(8)
+    expect([...planA.targets.values()].some((t) => t.exercise.id === 'triceps_overhead')).toBe(false)
+    await discardWorkout(db, (await getActiveSessionLog(db))!.id!)
+
+    const planB = await planOf(await start('B_lang'), { shortenLong: true })
+    expect([...planB.targets.values()].some((t) => t.exercise.id === 'biceps_curl')).toBe(false)
+  })
+
+  it('leaves the entry templates and circuits untouched', async () => {
+    const entry = await planOf(await start('A_einstieg'), { shortenLong: true })
+    expect(entry.groups).toHaveLength(7)
+    expect([...entry.targets.values()].some((t) => t.exercise.id === 'hanging_knee_raise')).toBe(true)
   })
 })

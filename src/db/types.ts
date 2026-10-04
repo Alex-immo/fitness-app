@@ -31,6 +31,12 @@ export interface User {
   planPhaseSince?: IsoDate
   /** Day until which the suggestion to switch to the full plan is postponed. */
   phaseSuggestionSnoozedUntil?: IsoDate
+  /** Extension: exercise 7 is dropped from the long versions (shortening rule). */
+  shortenLong?: boolean
+  /** Extension: day the suggestion to shorten was last declined. */
+  shorteningDeclinedOn?: IsoDate
+  /** Extension: week (its Monday) for which the deload suggestion was declined. */
+  deloadDeclinedWeek?: IsoDate
 }
 
 export interface Equipment {

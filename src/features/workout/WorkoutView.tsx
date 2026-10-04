@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { db } from '../../db/database'
+import { LOCAL_USER_ID } from '../../db/localUser'
 import type { ProgressionEventRecord, SetLog } from '../../db/types'
 import { formatKg, formatPlatesPerSide } from '../../shared/format'
 import { useLiveQuery } from '../../shared/useLiveQuery'
@@ -36,6 +37,9 @@ export function WorkoutView({ sessionLogId, onFinished, onBack }: WorkoutViewPro
     const scheduled = await db.scheduledSessions.get(sessionLog.scheduledSessionId)
     const template = scheduled && (await db.workoutTemplates.get(scheduled.templateId))
     if (!template) return null
+    const [weekPlan, user] = await Promise.all([db.weekPlans.get(scheduled.weekPlanId), db.users.get(LOCAL_USER_ID)])
+    const deload = weekPlan?.weekType === 'deload'
+    const shortenLong = user?.shortenLong === true
     const [items, exercises, states, setLogs, dumbbell] = await Promise.all([
       db.templateItems.where('templateId').equals(template.id).toArray(),
       db.exercises.toArray(),
@@ -43,7 +47,7 @@ export function WorkoutView({ sessionLogId, onFinished, onBack }: WorkoutViewPro
       db.setLogs.where('sessionLogId').equals(sessionLogId).toArray(),
       db.equipment.get('dumbbell'),
     ])
-    return { sessionLog, template, items, exercises, states, setLogs, dumbbell }
+    return { sessionLog, template, items, exercises, states, setLogs, dumbbell, deload, shortenLong }
   }, [sessionLogId])
 
   const plan = useMemo(
@@ -57,6 +61,8 @@ export function WorkoutView({ sessionLogId, onFinished, onBack }: WorkoutViewPro
         dumbbell: data.dumbbell,
         setLogs: data.setLogs,
         loadByExercise: data.sessionLog.draft?.loadByExercise ?? {},
+        deload: data.deload,
+        shortenLong: data.shortenLong,
       }),
     [data],
   )
@@ -97,6 +103,9 @@ export function WorkoutView({ sessionLogId, onFinished, onBack }: WorkoutViewPro
         <p>
           {doneRows} von {plan.totalRows} Sätzen erledigt
         </p>
+        {data.deload && (
+          <p className="exercise-flag">Deload-Woche: halbe Satzzahl, gleiche Last. Zählt nicht für die Progression.</p>
+        )}
       </header>
 
       {template.type === 'circuit' && loadTargets.length > 0 && (

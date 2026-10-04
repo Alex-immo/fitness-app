@@ -5,7 +5,8 @@ import type { PlanPhase } from '../../domain/types'
 import { checkForUpdate, type UpdateResult } from '../../shared/appUpdate'
 import { formatDayMonth } from '../../shared/format'
 import { useLiveQuery } from '../../shared/useLiveQuery'
-import { getPlanPhase, setPlanPhase } from '../plan/planStore'
+import { getUser } from '../body/bodyStore'
+import { setPlanPhase, setShortenLong } from '../plan/planStore'
 
 const PHASES: { id: PlanPhase; label: string; detail: string }[] = [
   { id: 'einstieg', label: 'Einstieg', detail: '7 Übungen, 17 Sätze je Einheit' },
@@ -13,8 +14,10 @@ const PHASES: { id: PlanPhase; label: string; detail: string }[] = [
 ]
 
 export function SettingsView() {
-  const phase = useLiveQuery(() => getPlanPhase(db), [])
-  if (phase === undefined) return null
+  const user = useLiveQuery(async () => (await getUser(db)) ?? null, [])
+  if (!user) return null
+  const phase = user.planPhase ?? 'einstieg'
+  const shortened = user.shortenLong === true
 
   return (
     <main className="screen screen-with-nav">
@@ -38,6 +41,25 @@ export function SettingsView() {
             >
               <strong>{label}</strong>
               <span>{detail}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+      <section className="card">
+        <h2>Langversion kürzen</h2>
+        <p className="exercise-note">
+          Streicht Übung 7 aus A lang und B lang (Trizeps bzw. Bizeps). Gilt nicht für die Einstiegsphase.
+        </p>
+        <div className="segmented" role="group" aria-label="Langversion kürzen">
+          {[false, true].map((option) => (
+            <button
+              key={String(option)}
+              type="button"
+              className={shortened === option ? 'chip chip-selected' : 'chip'}
+              aria-pressed={shortened === option}
+              onClick={() => void setShortenLong(db, option)}
+            >
+              {option ? 'Ohne Übung 7' : 'Alle 9 Übungen'}
             </button>
           ))}
         </div>

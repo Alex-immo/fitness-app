@@ -1,7 +1,9 @@
 import type { FitnessDatabase } from '../../db/database'
 import { LOCAL_USER_ID } from '../../db/localUser'
-import type { ScheduledSession, WeekPlan } from '../../db/types'
-import { addDays, minutesBetween, weekdayIndex } from '../../domain/dates'
+import type { ScheduledSession, WeekPlan, WeekType } from '../../db/types'
+import { addDays, minutesBetween, weekdayIndex, weekStartOf } from '../../domain/dates'
+import { deloadDue, trainingWeeksSinceDeload, type WeekRecord } from '../../domain/deload'
+import { shorteningApplies, shouldSuggestShortening } from '../../domain/shortening'
 import { shouldSuggestFullPlan, SUGGESTION_SNOOZE_DAYS, type CompletedSession } from '../../domain/phase'
 import { assignRotation, planPhaseOf, planWeek } from '../../domain/schedule'
 import type { DayType, IsoDate, PlanPhase } from '../../domain/types'
@@ -168,26 +170,42 @@ export async function snoozePhaseSuggestion(db: FitnessDatabase, today: IsoDate)
   await db.users.update(LOCAL_USER_ID, { phaseSuggestionSnoozedUntil: addDays(today, SUGGESTION_SNOOZE_DAYS) })
 }
 
+interface TimedSession extends CompletedSession {
+  templateId: ScheduledSession['templateId']
+}
+
+/** Completed sessions of normal weeks with their measured duration (start to finish). */
+async function completedSessions(db: FitnessDatabase): Promise<TimedSession[]> {
+  const deloadPlans = new Set(
+    (await db.weekPlans.toArray()).filter((plan) => plan.weekType === 'deload').map((plan) => plan.id),
+  )
+  const done = await db.scheduledSessions
+    .filter((session) => session.status === 'erledigt' && !deloadPlans.has(session.weekPlanId))
+    .toArray()
+  const result: TimedSession[] = []
+  for (const session of done) {
+    const log = await db.sessionLogs.where('scheduledSessionId').equals(session.id!).first()
+    if (!log?.finishedAt) continue
+    result.push({
+      date: session.date,
+      templateId: session.templateId,
+      durationMin: minutesBetween(log.startedAt, log.finishedAt),
+    })
+  }
+  return result
+}
+
 /** Whether to suggest the switch from the entry phase to the full plan today. */
 export async function fullPlanSuggested(db: FitnessDatabase, today: IsoDate): Promise<boolean> {
-  return db.transaction('r', db.users, db.scheduledSessions, db.sessionLogs, async () => {
+  return db.transaction('r', db.users, db.weekPlans, db.scheduledSessions, db.sessionLogs, async () => {
     const user = await db.users.get(LOCAL_USER_ID)
     const phase = user?.planPhase ?? DEFAULT_PLAN_PHASE
     if (phase !== 'einstieg') return false
-
-    const done = await db.scheduledSessions
-      .filter(
-        (session) =>
-          session.status === 'erledigt' &&
-          planPhaseOf(session.templateId) === 'einstieg' &&
-          (user?.planPhaseSince === undefined || session.date >= user.planPhaseSince),
-      )
-      .toArray()
-    const entrySessions: CompletedSession[] = []
-    for (const session of done) {
-      const log = await db.sessionLogs.where('scheduledSessionId').equals(session.id!).first()
-      if (log?.finishedAt) entrySessions.push({ date: session.date, durationMin: minutesBetween(log.startedAt, log.finishedAt) })
-    }
+    const entrySessions = (await completedSessions(db)).filter(
+      (session) =>
+        planPhaseOf(session.templateId) === 'einstieg' &&
+        (user?.planPhaseSince === undefined || session.date >= user.planPhaseSince),
+    )
     return shouldSuggestFullPlan({
       phase,
       entrySessions,
@@ -195,4 +213,67 @@ export async function fullPlanSuggested(db: FitnessDatabase, today: IsoDate): Pr
       snoozedUntil: user?.phaseSuggestionSnoozedUntil ?? null,
     })
   })
+}
+
+/** Shortening rule: two long versions in a row above 55 minutes. Entry templates never trigger it. */
+export async function shorteningSuggested(db: FitnessDatabase): Promise<boolean> {
+  return db.transaction('r', db.users, db.weekPlans, db.scheduledSessions, db.sessionLogs, async () => {
+    const user = await db.users.get(LOCAL_USER_ID)
+    return shouldSuggestShortening({
+      longSessions: (await completedSessions(db)).filter((session) => shorteningApplies(session.templateId)),
+      alreadyShortened: user?.shortenLong === true,
+      declinedOn: user?.shorteningDeclinedOn ?? null,
+    })
+  })
+}
+
+/** Drops exercise 7 from the long versions, or brings it back. */
+export async function setShortenLong(db: FitnessDatabase, shortenLong: boolean): Promise<void> {
+  await db.users.update(LOCAL_USER_ID, { shortenLong })
+}
+
+export async function declineShortening(db: FitnessDatabase, today: IsoDate): Promise<void> {
+  await db.users.update(LOCAL_USER_ID, { shorteningDeclinedOn: today })
+}
+
+/**
+ * Deload suggestion for the current week: due after seven training weeks since
+ * the last deload week, counted across both plan variants.
+ */
+export async function deloadSuggested(db: FitnessDatabase, today: IsoDate): Promise<boolean> {
+  return db.transaction('r', db.users, db.weekPlans, db.scheduledSessions, async () => {
+    const currentWeekStart = weekStartOf(today)
+    const user = await db.users.get(LOCAL_USER_ID)
+    if (user?.deloadDeclinedWeek === currentWeekStart) return false
+
+    const plans = await db.weekPlans.toArray()
+    if (plans.find((plan) => plan.weekStart === currentWeekStart)?.weekType === 'deload') return false
+    const trainedPlans = new Set(
+      (
+        await db.scheduledSessions
+          .filter((session) => session.status === 'erledigt' && session.templateId !== 'bike_z2')
+          .toArray()
+      ).map((session) => session.weekPlanId),
+    )
+    const weeks: WeekRecord[] = plans.map((plan) => ({
+      weekStart: plan.weekStart,
+      weekType: plan.weekType,
+      trained: trainedPlans.has(plan.id!),
+    }))
+    return deloadDue(trainingWeeksSinceDeload(weeks, currentWeekStart))
+  })
+}
+
+/** Makes a week a deload week or a normal one again. */
+export async function setWeekType(db: FitnessDatabase, weekStart: IsoDate, weekType: WeekType): Promise<void> {
+  await db.transaction('rw', db.weekPlans, async () => {
+    const existing = await db.weekPlans.where('weekStart').equals(weekStart).first()
+    if (existing?.id !== undefined) await db.weekPlans.update(existing.id, { weekType })
+    else await db.weekPlans.add({ userId: LOCAL_USER_ID, weekStart, weekType })
+  })
+}
+
+/** "Not this week": the suggestion comes back next week. */
+export async function declineDeload(db: FitnessDatabase, today: IsoDate): Promise<void> {
+  await db.users.update(LOCAL_USER_ID, { deloadDeclinedWeek: weekStartOf(today) })
 }

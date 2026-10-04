@@ -10,12 +10,18 @@ import { TEMPLATE_NAMES } from '../workout/texts'
 import { startScheduledSession } from '../workout/workoutStore'
 import {
   closePastWeeks,
+  declineDeload,
+  declineShortening,
+  deloadSuggested,
   fullPlanSuggested,
   getWeek,
   logBikeSession,
   saveWeekPlan,
   setPlanPhase,
   setSessionDropped,
+  setShortenLong,
+  setWeekType,
+  shorteningSuggested,
   snoozePhaseSuggestion,
   suggestedDayTypes,
 } from './planStore'
@@ -52,9 +58,12 @@ export function PlanView({ onResumeWorkout }: PlanViewProps) {
 
   const week = useLiveQuery(() => getWeek(db, weekStart), [weekStart])
   const suggestFullPlan = useLiveQuery(() => fullPlanSuggested(db, today), [today])
+  const suggestDeload = useLiveQuery(() => deloadSuggested(db, today), [today])
+  const suggestShortening = useLiveQuery(() => shorteningSuggested(db), [])
   const [editing, setEditing] = useState(false)
   if (week === undefined) return null
   const planned = week?.plan.dayTypes !== undefined
+  const isDeload = week?.plan.weekType === 'deload'
 
   return (
     <main className="screen screen-with-nav">
@@ -91,6 +100,38 @@ export function PlanView({ onResumeWorkout }: PlanViewProps) {
         </section>
       )}
 
+      {suggestDeload && (
+        <section className="card card-highlight">
+          <h2>Zeit für eine Deload-Woche</h2>
+          <p className="exercise-note">
+            Sieben Trainingswochen liegen hinter dir. In der Deload-Woche machst du die halbe Satzzahl bei gleicher
+            Last; sie zählt nicht für die Progression.
+          </p>
+          <button type="button" className="button-primary" onClick={() => void setWeekType(db, thisWeek, 'deload')}>
+            Diese Woche als Deload-Woche
+          </button>
+          <button type="button" className="button-quiet" onClick={() => void declineDeload(db, today)}>
+            Nicht diese Woche
+          </button>
+        </section>
+      )}
+
+      {suggestShortening && (
+        <section className="card card-highlight">
+          <h2>Langversion kürzen?</h2>
+          <p className="exercise-note">
+            Deine letzten beiden Langversionen haben über 55 Minuten gedauert. Vorschlag: Übung 7 streichen (Trizeps in
+            A, Bizeps in B). Das lässt sich in den Einstellungen zurücknehmen.
+          </p>
+          <button type="button" className="button-primary" onClick={() => void setShortenLong(db, true)}>
+            Übung 7 streichen
+          </button>
+          <button type="button" className="button-quiet" onClick={() => void declineShortening(db, today)}>
+            So lassen
+          </button>
+        </section>
+      )}
+
       <div className="segmented" role="group" aria-label="Woche">
         {['Diese Woche', 'Nächste Woche'].map((label, offset) => (
           <button
@@ -117,6 +158,9 @@ export function PlanView({ onResumeWorkout }: PlanViewProps) {
         />
       ) : (
         <>
+          {isDeload && (
+            <p className="exercise-flag">Deload-Woche: halbe Satzzahl, gleiche Last, zählt nicht für die Progression.</p>
+          )}
           {week.sessions.length === 0 && (
             <p className="exercise-note">In dieser Woche ist nichts geplant.</p>
           )}
@@ -125,6 +169,13 @@ export function PlanView({ onResumeWorkout }: PlanViewProps) {
           ))}
           <button type="button" className="button-quiet" onClick={() => setEditing(true)}>
             Tagtypen ändern
+          </button>
+          <button
+            type="button"
+            className="button-quiet"
+            onClick={() => void setWeekType(db, weekStart, isDeload ? 'normal' : 'deload')}
+          >
+            {isDeload ? 'Wieder normale Woche' : 'Als Deload-Woche planen'}
           </button>
         </>
       )}
