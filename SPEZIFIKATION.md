@@ -346,7 +346,8 @@ User
   kcal_target, protein_target_g, gain_target_pct_per_week,
   plan_phase ("einstieg" | "voll"), plan_phase_since,
   phase_suggestion_snoozed_until,
-  shorten_long (bool), shortening_declined_on, deload_declined_week
+  shorten_long (bool), shortening_declined_on, deload_declined_week,
+  last_backup_on
 
 Equipment
   id (slug), name_de, count, bar_weight_kg (null = ohne Last),

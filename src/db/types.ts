@@ -37,6 +37,8 @@ export interface User {
   shorteningDeclinedOn?: IsoDate
   /** Extension: week (its Monday) for which the deload suggestion was declined. */
   deloadDeclinedWeek?: IsoDate
+  /** Extension: day of the last backup export or import, for the weekly reminder. */
+  lastBackupOn?: IsoDate
 }
 
 export interface Equipment {

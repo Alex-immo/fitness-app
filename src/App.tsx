@@ -51,7 +51,7 @@ export function App() {
 
   return (
     <>
-      {tab === 'plan' && <PlanView onResumeWorkout={resume} />}
+      {tab === 'plan' && <PlanView onResumeWorkout={resume} onOpenBackup={() => setTab('settings')} />}
       {tab === 'body' && <BodyView />}
       {tab === 'history' && <HistoryView />}
       {tab === 'settings' && <SettingsView />}

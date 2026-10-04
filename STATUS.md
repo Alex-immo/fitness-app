@@ -13,6 +13,7 @@ Stand: 4. Oktober 2026
 - Einstiegsphase: Vorlagen A/B Einstieg, Einstellung Planvariante (Einstieg/Voll), Satzzahl aus Vorlage plus Zusatzsatz, Wechselvorschlag, Datenbank-Version 3
 - Schritt 7: Verlauf je Übung (Stand, letzte Einheiten, Änderungen), Deload-Vorschlag und Deload-Woche, Kürzungsregel für die Langversionen
 - Einstellungen: Versionsanzeige mit Aktualisieren-Knopf; Zurück im laufenden Workout
+- Schritt 8: Backup-Export (Teilen-Menü, sonst Download-Link) und -Import (Zod-Prüfung, Rückfrage, alles oder nichts), wöchentliche Erinnerung im Wochenplan
 
 ## Entscheidungen (4. Oktober 2026)
 
@@ -28,13 +29,12 @@ Stand: 4. Oktober 2026
 
 ## Offen
 
-- Noch kein Backup: Daten liegen nur auf dem Gerät (Schritt 8)
+- Auf dem iPhone prüfen: Teilen-Menü beim Export, Dateiauswahl beim Import, Wake Lock im Workout
 
 ## Noch nicht gebaut
 
-- Backup (Schritt 8)
 - Einstellungen für Profil und Equipment (in keinem Bauschritt)
 
 ## Nächster Schritt
 
-Schritt 8: Backup-Export und -Import
+Schritt 9 ist technisch erledigt (App ist veröffentlicht). Offen: Test auf dem iPhone, danach Einstellungen für Profil und Equipment.

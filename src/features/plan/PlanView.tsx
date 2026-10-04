@@ -5,6 +5,7 @@ import { addDays, toIsoDate, weekdayIndex, weekStartOf } from '../../domain/date
 import type { DayType, IsoDate } from '../../domain/types'
 import { formatDayMonth, weekdayShort } from '../../shared/format'
 import { useLiveQuery } from '../../shared/useLiveQuery'
+import { backupReminderDueFor } from '../backup/backupStore'
 import { Stepper } from '../workout/Stepper'
 import { TEMPLATE_NAMES } from '../workout/texts'
 import { startScheduledSession } from '../workout/workoutStore'
@@ -42,11 +43,13 @@ const STATUS_LABELS: Record<SessionStatus, string> = {
 }
 
 interface PlanViewProps {
+  /** Opens the tab with the backup. */
+  onOpenBackup: () => void
   /** Set while a workout is running in the background: returns to it. */
   onResumeWorkout?: () => void
 }
 
-export function PlanView({ onResumeWorkout }: PlanViewProps) {
+export function PlanView({ onResumeWorkout, onOpenBackup }: PlanViewProps) {
   const today = toIsoDate(new Date())
   const thisWeek = weekStartOf(today)
   const [weekOffset, setWeekOffset] = useState(0)
@@ -60,6 +63,7 @@ export function PlanView({ onResumeWorkout }: PlanViewProps) {
   const suggestFullPlan = useLiveQuery(() => fullPlanSuggested(db, today), [today])
   const suggestDeload = useLiveQuery(() => deloadSuggested(db, today), [today])
   const suggestShortening = useLiveQuery(() => shorteningSuggested(db), [])
+  const backupDue = useLiveQuery(() => backupReminderDueFor(db, today), [today])
   const [editing, setEditing] = useState(false)
   if (week === undefined) return null
   const planned = week?.plan.dayTypes !== undefined
@@ -96,6 +100,18 @@ export function PlanView({ onResumeWorkout }: PlanViewProps) {
           </button>
           <button type="button" className="button-quiet" onClick={() => void snoozePhaseSuggestion(db, today)}>
             In zwei Wochen wieder fragen
+          </button>
+        </section>
+      )}
+
+      {backupDue && (
+        <section className="card card-highlight">
+          <h2>Backup fällig</h2>
+          <p className="exercise-note">
+            Das letzte Backup ist über eine Woche her. Deine Daten liegen sonst nur auf diesem Gerät.
+          </p>
+          <button type="button" className="button-secondary" onClick={onOpenBackup}>
+            Zum Backup
           </button>
         </section>
       )}

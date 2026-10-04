@@ -5,6 +5,7 @@ import type { PlanPhase } from '../../domain/types'
 import { checkForUpdate, type UpdateResult } from '../../shared/appUpdate'
 import { formatDayMonth } from '../../shared/format'
 import { useLiveQuery } from '../../shared/useLiveQuery'
+import { BackupSection } from '../backup/BackupSection'
 import { getUser } from '../body/bodyStore'
 import { setPlanPhase, setShortenLong } from '../plan/planStore'
 
@@ -64,6 +65,7 @@ export function SettingsView() {
           ))}
         </div>
       </section>
+      <BackupSection />
       <AppVersion />
     </main>
   )
