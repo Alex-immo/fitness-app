@@ -24,3 +24,15 @@ export function weekdayIndex(date: IsoDate): number {
 export function weekStartOf(date: IsoDate): IsoDate {
   return addDays(date, -weekdayIndex(date))
 }
+
+const pad = (value: number) => String(value).padStart(2, '0')
+
+/** Calendar day of a point in time, in the device's local time zone. */
+export function toIsoDate(date: Date): IsoDate {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+/** Local timestamp without zone, e.g. "2030-01-07T06:30:00". */
+export function toLocalTimestamp(date: Date): string {
+  return `${toIsoDate(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}

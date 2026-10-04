@@ -1,42 +1,63 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { db } from './db/database'
+import type { ProgressionEventRecord } from './db/types'
+import type { TemplateId } from './domain/types'
+import { eventText, TEMPLATE_NAMES } from './features/workout/texts'
+import { WorkoutView } from './features/workout/WorkoutView'
+import { getActiveSessionLog, startWorkout } from './features/workout/workoutStore'
+import { useLiveQuery } from './shared/useLiveQuery'
 
-interface CatalogCounts {
-  exercises: number
-  templates: number
-  equipment: number
-}
+// Until week planning exists (build step 5) a workout is started by hand.
+const STARTABLE: { id: TemplateId; detail: string }[] = [
+  { id: 'A_lang', detail: 'Push, Knie-Schwerpunkt · ca. 60 Min' },
+  { id: 'B_lang', detail: 'Pull, Hüft-Schwerpunkt · ca. 60 Min' },
+  { id: 'kurzzirkel', detail: 'Bürotag · 25 Min' },
+  { id: 'reisezirkel', detail: 'ohne Equipment · 20–25 Min' },
+]
 
-// Placeholder start screen. The real views follow from build step 4 onwards.
 export function App() {
-  const [counts, setCounts] = useState<CatalogCounts | null>(null)
-  const [failed, setFailed] = useState(false)
+  const active = useLiveQuery(async () => (await getActiveSessionLog(db)) ?? null, [])
+  const [summary, setSummary] = useState<ProgressionEventRecord[] | null>(null)
 
-  useEffect(() => {
-    let cancelled = false
-    Promise.all([db.exercises.count(), db.workoutTemplates.count(), db.equipment.count()])
-      .then(([exercises, templates, equipment]) => {
-        if (!cancelled) setCounts({ exercises, templates, equipment })
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  if (summary) return <Summary events={summary} onClose={() => setSummary(null)} />
+  if (active === undefined) return null
+  if (active?.id !== undefined) return <WorkoutView sessionLogId={active.id} onFinished={setSummary} />
 
   return (
-    <main className="start">
-      <h1>Fitness-App</h1>
-      <p>Das Grundgerüst steht. Die Trainingsansicht folgt im nächsten Schritt.</p>
-      {failed && <p className="status">Die lokale Datenbank ließ sich nicht öffnen.</p>}
-      {counts && (
-        <p className="status">
-          Lokale Datenbank bereit: {counts.exercises} Übungen, {counts.templates} Vorlagen,{' '}
-          {counts.equipment} Geräte.
-        </p>
-      )}
+    <main className="screen">
+      <header className="screen-head">
+        <h1>Fitness-App</h1>
+        <p>Welches Workout steht heute an?</p>
+      </header>
+      {STARTABLE.map(({ id, detail }) => (
+        <button key={id} type="button" className="start-button" onClick={() => void startWorkout(db, id, new Date())}>
+          <strong>{TEMPLATE_NAMES[id]}</strong>
+          <span>{detail}</span>
+        </button>
+      ))}
+    </main>
+  )
+}
+
+function Summary({ events, onClose }: { events: ProgressionEventRecord[]; onClose: () => void }) {
+  const exercises = useLiveQuery(() => db.exercises.toArray(), [])
+  const nameOf = (id: string) => exercises?.find((exercise) => exercise.id === id)?.nameDe ?? id
+
+  return (
+    <main className="screen">
+      <header className="screen-head">
+        <h1>Workout gespeichert</h1>
+        <p>{events.length === 0 ? 'Keine Änderung an den Stufen. Weiter so.' : 'Das ändert sich beim nächsten Mal:'}</p>
+      </header>
+      {events.map((event, index) => (
+        <section className="card" key={index}>
+          <h2>{nameOf(event.exerciseId)}</h2>
+          <p className="exercise-note">{eventText(event)}</p>
+        </section>
+      ))}
+      <button type="button" className="button-primary" onClick={onClose}>
+        Fertig
+      </button>
     </main>
   )
 }

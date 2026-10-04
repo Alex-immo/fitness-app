@@ -66,6 +66,11 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // A new version takes over at once instead of waiting for all tabs to
+        // close; the installed app then shows it on its next start.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,png,svg,webmanifest}'],
       },
     }),

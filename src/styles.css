@@ -2,21 +2,32 @@
   color-scheme: light dark;
   --bg: #f4f5f7;
   --surface: #ffffff;
+  --surface-sunken: #eceef1;
+  --border: #d5d9df;
   --text: #14181d;
   --text-muted: #56606b;
-  --accent: #1f6feb;
+  --accent: #1a5fd0;
+  --on-accent: #ffffff;
+  --success: #1c7c45;
+  --danger: #b3261e;
+  --tap: 48px;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: 17px;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #101418;
     --surface: #1a2027;
+    --surface-sunken: #232b34;
+    --border: #36414d;
     --text: #eef1f4;
     --text-muted: #a3adb8;
     --accent: #6ea8ff;
+    --on-accent: #0b1622;
+    --success: #5dd39a;
+    --danger: #ff8a80;
   }
 }
 
@@ -29,31 +40,321 @@ body {
   background: var(--bg);
   color: var(--text);
   -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.start {
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.6rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+}
+
+button,
+select {
+  font: inherit;
+  color: inherit;
+  min-height: var(--tap);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-sunken);
+  touch-action: manipulation;
+}
+
+button:disabled,
+select:disabled {
+  opacity: 0.55;
+}
+
+/* Screens */
+
+.screen {
   min-height: 100dvh;
-  padding: calc(env(safe-area-inset-top) + 24px) calc(env(safe-area-inset-right) + 20px)
-    calc(env(safe-area-inset-bottom) + 24px) calc(env(safe-area-inset-left) + 20px);
+  max-width: 560px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 20px) calc(env(safe-area-inset-right) + 16px)
+    calc(env(safe-area-inset-bottom) + 24px) calc(env(safe-area-inset-left) + 16px);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 12px;
+  gap: 14px;
 }
 
-.start h1 {
-  margin: 0;
-  font-size: 1.9rem;
+.workout {
+  /* Room for the rest timer pinned to the bottom. */
+  padding-bottom: calc(env(safe-area-inset-bottom) + 120px);
 }
 
-.start p {
-  margin: 0;
+.screen-head p {
   color: var(--text-muted);
 }
 
-.start .status {
-  padding: 12px 14px;
-  border-radius: 12px;
+.card {
   background: var(--surface);
-  color: var(--text);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card-done {
+  opacity: 0.75;
+}
+
+/* Buttons */
+
+.button-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  min-height: 54px;
+  width: 100%;
+}
+
+.button-quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--accent);
+  padding: 0 10px;
+}
+
+.button-danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 600;
+  width: 100%;
+}
+
+.start-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 14px 16px;
+  background: var(--surface);
+  text-align: left;
+}
+
+.start-button span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Exercise card */
+
+.exercise-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.exercise-target {
+  font-weight: 600;
+}
+
+.exercise-note {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.exercise-flag {
+  color: var(--accent);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.load-picker {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 6px;
+}
+
+.load-picker label {
+  font-size: 0.92rem;
+}
+
+.load-picker select {
+  padding: 0 12px;
+  min-width: 150px;
+}
+
+.load-plates {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  text-align: right;
+}
+
+/* Set rows */
+
+.set-row {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.set-row-done,
+.set-row-pending {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: var(--tap);
+}
+
+.set-row-done > div,
+.set-open-head {
+  display: flex;
+  flex-direction: column;
+}
+
+.set-row-done .set-title {
+  color: var(--success);
+}
+
+.set-row-pending {
+  color: var(--text-muted);
+}
+
+.set-row-open {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.set-title {
+  font-weight: 600;
+}
+
+.set-result {
+  font-size: 0.92rem;
+  color: var(--text-muted);
+}
+
+/* Stepper */
+
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.stepper-label {
+  font-size: 0.92rem;
+}
+
+.stepper-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stepper-controls button {
+  width: 56px;
+  min-height: 52px;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.stepper-controls output {
+  min-width: 52px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chips (RIR, effort) */
+
+.rir {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.rir legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 0.92rem;
+}
+
+.chips {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.chip {
+  padding: 0;
+  font-weight: 600;
+}
+
+.chip-selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+/* Rest timer, pinned to the bottom within thumb reach */
+
+.rest-timer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px calc(env(safe-area-inset-right) + 16px) calc(env(safe-area-inset-bottom) + 10px)
+    calc(env(safe-area-inset-left) + 16px);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.rest-timer-text {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.rest-timer-text strong {
+  font-size: 1.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.rest-timer-over .rest-timer-text {
+  color: var(--success);
+}
+
+.rest-timer progress {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  height: 6px;
+  accent-color: var(--accent);
+}
+
+.rest-timer button {
+  padding: 0 14px;
 }
